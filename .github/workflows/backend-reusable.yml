@@ -110,19 +110,26 @@ jobs:
           # Create package directory
           mkdir -p package
           
-          # Install dependencies
-          pip install -r requirements.txt -t package/
+          # Install dependencies compatible with AWS Lambda (Amazon Linux 2)
+          # Use manylinux2014 which is compatible with GLIBC 2.17+
+          pip install \
+            --platform manylinux2014_x86_64 \
+            --target package \
+            --implementation cp \
+            --python-version ${{ inputs.python_version }} \
+            --only-binary=:all: \
+            --upgrade \
+            -r requirements.txt
           
           # Copy source code
-          cp -r api models utils package/
+          cp -r api models utils functions package/
           
           # Create zip file
           cd package
-          zip -r ../lambda-deployment.zip .
+          zip -r9 ../lambda-deployment.zip .
           cd ..
           
-          # Add function handlers
-          zip -g lambda-deployment.zip functions/*.py
+          echo "✅ Lambda deployment package created: $(du -h lambda-deployment.zip | cut -f1)"
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
