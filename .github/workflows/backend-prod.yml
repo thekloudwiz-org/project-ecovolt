@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/backend-reusable.yml
     with:
       environment: prod
-      aws_region: 'us-east-1'
+      aws_region: 'eu-central-1'
       python_version: '3.11'
     secrets:
       aws_role_arn: ${{ secrets.AWS_ROLE_ARN_PROD }}

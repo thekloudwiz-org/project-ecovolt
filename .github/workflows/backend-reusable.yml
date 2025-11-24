@@ -11,7 +11,7 @@ on:
         description: 'AWS region'
         required: false
         type: string
-        default: 'us-east-1'
+        default: 'eu-central-1'
       python_version:
         description: 'Python version'
         required: false
@@ -156,15 +156,27 @@ jobs:
       
       - name: Update Lambda functions
         run: |
-          # Update API handler Lambda
-          aws lambda update-function-code \
-            --function-name ecovolt-${{ inputs.environment }}-api-handler \
-            --s3-bucket ${{ secrets.deployment_bucket }} \
-            --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
+          FUNCTION_NAME="ecovolt-${{ inputs.environment }}-api-handler"
           
-          # Wait for update to complete
-          aws lambda wait function-updated \
-            --function-name ecovolt-${{ inputs.environment }}-api-handler
+          # Check if Lambda function exists
+          if aws lambda get-function --function-name $FUNCTION_NAME 2>/dev/null; then
+            echo "✅ Lambda function exists, updating code..."
+            aws lambda update-function-code \
+              --function-name $FUNCTION_NAME \
+              --s3-bucket ${{ secrets.deployment_bucket }} \
+              --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
+            
+            # Wait for update to complete
+            aws lambda wait function-updated --function-name $FUNCTION_NAME
+            echo "✅ Lambda function updated successfully"
+          else
+            echo "⚠️  Lambda function $FUNCTION_NAME does not exist yet"
+            echo "📝 Please run Terraform to create the Lambda function first:"
+            echo "    terraform apply -var-file=environments/${{ inputs.environment }}.tfvars"
+            echo ""
+            echo "💡 The deployment package has been uploaded to S3 and is ready to use"
+            echo "    S3 Location: s3://${{ secrets.deployment_bucket }}/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip"
+          fi
       
       - name: Run database migrations
         run: |
