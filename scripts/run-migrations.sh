@@ -65,10 +65,24 @@ fi
 # Get database credentials from Secrets Manager
 print_info "Fetching database credentials from Secrets Manager..."
 
-SECRET_NAME="${ENVIRONMENT}/ecovolt/db/master"
+# First, get the secret ARN from SSM Parameter Store
+SSM_PARAM_NAME="/ecovolt/${ENVIRONMENT}/database/secret-arn"
 
+if ! SECRET_ARN=$(aws ssm get-parameter \
+    --name "$SSM_PARAM_NAME" \
+    --region "$AWS_REGION" \
+    --query Parameter.Value \
+    --output text 2>&1); then
+    print_error "Failed to fetch secret ARN from SSM Parameter Store"
+    echo "$SECRET_ARN"
+    exit 1
+fi
+
+print_info "Using secret: $SECRET_ARN"
+
+# Now get the actual credentials using the ARN
 if ! DB_SECRET=$(aws secretsmanager get-secret-value \
-    --secret-id "$SECRET_NAME" \
+    --secret-id "$SECRET_ARN" \
     --region "$AWS_REGION" \
     --query SecretString \
     --output text 2>&1); then

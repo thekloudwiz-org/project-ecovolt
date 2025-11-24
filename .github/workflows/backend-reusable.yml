@@ -255,9 +255,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client jq
           
-          # Get database credentials from Secrets Manager
+          # Get the secret ARN from SSM Parameter Store
+          SECRET_ARN=$(aws ssm get-parameter \
+            --name "/ecovolt/${{ inputs.environment }}/database/secret-arn" \
+            --query Parameter.Value \
+            --output text)
+          
+          echo "📋 Using secret: $SECRET_ARN"
+          
+          # Get database credentials from Secrets Manager using the ARN
           DB_SECRET=$(aws secretsmanager get-secret-value \
-            --secret-id ${{ inputs.environment }}/ecovolt/db/master \
+            --secret-id "$SECRET_ARN" \
             --query SecretString \
             --output text)
           
