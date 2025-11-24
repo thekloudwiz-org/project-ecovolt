@@ -168,7 +168,7 @@ jobs:
     needs: build-android
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
-      name: production-mobile
+      name: prod
     
     steps:
       - name: Download APK
@@ -210,7 +210,7 @@ jobs:
     needs: build-ios
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
-      name: production-mobile
+      name: prod
     
     steps:
       - name: Download iOS build

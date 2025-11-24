@@ -127,7 +127,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     environment:
-      name: development
+      name: dev
       url: https://dev-api.ecovolt.thekloudwiz.com
     
     steps:
@@ -226,7 +226,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
-      name: production
+      name: prod
       url: https://api.ecovolt.thekloudwiz.com
     
     steps:

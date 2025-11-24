@@ -120,7 +120,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     environment:
-      name: development-admin
+      name: dev
       url: https://dev-admin.ecovolt.thekloudwiz.com
     
     steps:
@@ -158,7 +158,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
     environment:
-      name: staging-admin
+      name: staging
       url: https://staging-admin.ecovolt.thekloudwiz.com
     
     steps:
@@ -195,7 +195,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
-      name: production-admin
+      name: prod
       url: https://admin.ecovolt.thekloudwiz.com
     
     steps:
