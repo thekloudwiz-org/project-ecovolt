@@ -1,0 +1,30 @@
+name: Backend Staging Environment
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'application/backend/**'
+      - '.github/workflows/backend-staging.yml'
+      - '.github/workflows/backend-reusable.yml'
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'application/backend/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backend-staging:
+    name: Backend Staging
+    uses: ./.github/workflows/backend-reusable.yml
+    with:
+      environment: staging
+      aws_region: 'us-east-1'
+      python_version: '3.11'
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_STAGING }}

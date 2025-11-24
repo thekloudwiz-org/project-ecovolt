@@ -1,0 +1,30 @@
+name: Backend Production Environment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'application/backend/**'
+      - '.github/workflows/backend-prod.yml'
+      - '.github/workflows/backend-reusable.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'application/backend/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backend-prod:
+    name: Backend Production
+    uses: ./.github/workflows/backend-reusable.yml
+    with:
+      environment: prod
+      aws_region: 'us-east-1'
+      python_version: '3.11'
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_PROD }}

@@ -1,0 +1,30 @@
+name: Backend Dev Environment
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'application/backend/**'
+      - '.github/workflows/backend-dev.yml'
+      - '.github/workflows/backend-reusable.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'application/backend/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  backend-dev:
+    name: Backend Dev
+    uses: ./.github/workflows/backend-reusable.yml
+    with:
+      environment: dev
+      aws_region: 'us-east-1'
+      python_version: '3.11'
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_DEV }}

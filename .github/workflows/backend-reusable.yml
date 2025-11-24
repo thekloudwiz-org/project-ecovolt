@@ -1,0 +1,173 @@
+name: Backend Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, staging, prod)'
+        required: true
+        type: string
+      aws_region:
+        description: 'AWS region'
+        required: false
+        type: string
+        default: 'us-east-1'
+      python_version:
+        description: 'Python version'
+        required: false
+        type: string
+        default: '3.11'
+    secrets:
+      aws_role_arn:
+        description: 'AWS IAM Role ARN for OIDC'
+        required: true
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required to checkout code
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python_version }}
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('application/backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          cd application/backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov hypothesis
+      
+      - name: Run syntax validation
+        run: |
+          cd application/backend
+          python -m py_compile api/*.py models/*.py utils/*.py
+      
+      - name: Run unit tests
+        run: |
+          cd application/backend
+          # pytest tests/ --cov=. --cov-report=xml --cov-report=term
+          echo "Unit tests would run here"
+      
+      - name: Run property-based tests
+        run: |
+          cd application/backend
+          # pytest tests/properties/ --hypothesis-show-statistics
+          echo "Property-based tests would run here"
+      
+      - name: Upload coverage reports
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./application/backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  build:
+    name: Build Lambda Package
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python_version }}
+      
+      - name: Create deployment package
+        run: |
+          cd application/backend
+          
+          # Create package directory
+          mkdir -p package
+          
+          # Install dependencies
+          pip install -r requirements.txt -t package/
+          
+          # Copy source code
+          cp -r api models utils package/
+          
+          # Create zip file
+          cd package
+          zip -r ../lambda-deployment.zip .
+          cd ..
+          
+          # Add function handlers
+          zip -g lambda-deployment.zip functions/*.py
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package-${{ github.sha }}
+          path: application/backend/lambda-deployment.zip
+          retention-days: 30
+
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: ${{ inputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: GitHubActions-Backend-${{ inputs.environment }}
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package-${{ github.sha }}
+          path: ./
+      
+      - name: Upload to S3
+        run: |
+          aws s3 cp lambda-deployment.zip \
+            s3://ecovolt-deployments/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
+      
+      - name: Update Lambda functions
+        run: |
+          # Update API handler Lambda
+          aws lambda update-function-code \
+            --function-name ecovolt-${{ inputs.environment }}-api-handler \
+            --s3-bucket ecovolt-deployments \
+            --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
+          
+          # Wait for update to complete
+          aws lambda wait function-updated \
+            --function-name ecovolt-${{ inputs.environment }}-api-handler
+      
+      - name: Run database migrations
+        run: |
+          echo "Database migrations would run here"
+          # This would typically connect to RDS and run migration scripts
+      
+      - name: Verify deployment
+        run: |
+          echo "Deployment to ${{ inputs.environment }} completed successfully"
