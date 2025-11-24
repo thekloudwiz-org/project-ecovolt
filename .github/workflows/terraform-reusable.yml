@@ -60,12 +60,11 @@ jobs:
         id: cache-key
         run: echo "key=terraform-${{ inputs.environment }}-${{ hashFiles('**/*.tf', '.terraform.lock.hcl') }}" >> $GITHUB_OUTPUT
 
-      - name: Cache Terraform
+      - name: Cache Terraform Providers
         uses: actions/cache@v3
         with:
           path: |
-            .terraform
-            .terraform.lock.hcl
+            .terraform/providers
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
             terraform-${{ inputs.environment }}-
@@ -94,12 +93,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            .terraform
-            .terraform.lock.hcl
+            .terraform/providers
           key: ${{ needs.terraform-init.outputs.cache-key }}
 
-      - name: Terraform Init (if cache miss)
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Terraform Init
         run: terraform init -backend=false
 
       - name: Terraform Format Check
@@ -178,12 +175,11 @@ jobs:
           aws-region: ${{ inputs.aws_region }}
           role-session-name: GitHubActions-${{ inputs.environment }}-plan
 
-      - name: Restore Terraform Cache
+      - name: Restore Terraform Providers Cache
         uses: actions/cache@v3
         with:
           path: |
-            .terraform
-            .terraform.lock.hcl
+            .terraform/providers
           key: ${{ needs.terraform-init.outputs.cache-key }}
 
       - name: Terraform Init
