@@ -295,7 +295,6 @@ resource "aws_cloudwatch_log_group" "api_handler" {
 
 # Create ZIP archives for Lambda functions
 # Package the entire backend application
-# Note: This will fail in CI/CD, but that's OK because Lambda code is deployed separately
 data "archive_file" "api_handler" {
   type        = "zip"
   source_dir  = "${path.root}/application/backend"
@@ -386,11 +385,11 @@ resource "aws_cloudwatch_log_group" "iot_processor" {
 }
 
 resource "aws_lambda_function" "iot_processor" {
-  filename         = data.local_file.lambda_package.filename
+  filename         = data.archive_file.api_handler.output_path
   function_name    = "${local.name_prefix}-iot-processor"
   role             = aws_iam_role.lambda_execution.arn
   handler          = "functions.iot_processor.handler"
-  source_code_hash = filebase64sha256(data.local_file.lambda_package.filename)
+  source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout

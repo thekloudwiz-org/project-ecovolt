@@ -22,13 +22,14 @@ resource "aws_lambda_function" "db_migrator" {
   handler          = "functions.db_migrator.handler"
   source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
-  memory_size      = 1024  # More memory for pip install and database operations
-  timeout          = 600   # 10 minutes for pip install + migrations
-  
-  # Ephemeral storage for pip install
-  ephemeral_storage {
-    size = 1024  # 1 GB for pip packages
-  }
+  memory_size      = 512  # More memory for database operations
+  timeout          = 300  # 5 minutes for migrations
+
+  # Use AWS-provided psycopg2 layer
+  # This layer contains psycopg2 compiled for Lambda's Amazon Linux 2 environment
+  layers = [
+    "arn:aws:lambda:${data.aws_region.current.name}:898466741470:layer:psycopg2-py38:1"
+  ]
 
   # VPC configuration - needs access to RDS
   vpc_config {
