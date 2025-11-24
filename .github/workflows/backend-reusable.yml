@@ -249,8 +249,67 @@ jobs:
       
       - name: Run database migrations
         run: |
-          echo "Database migrations would run here"
-          # This would typically connect to RDS and run migration scripts
+          echo "🗄️  Running database migrations..."
+          
+          # Install PostgreSQL client
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+          
+          # Get database credentials from Secrets Manager
+          DB_SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id ${{ inputs.environment }}/ecovolt/db/master \
+            --query SecretString \
+            --output text)
+          
+          DB_HOST=$(echo $DB_SECRET | jq -r '.host')
+          DB_PORT=$(echo $DB_SECRET | jq -r '.port')
+          DB_NAME=$(echo $DB_SECRET | jq -r '.dbname')
+          DB_USER=$(echo $DB_SECRET | jq -r '.username')
+          DB_PASSWORD=$(echo $DB_SECRET | jq -r '.password')
+          
+          # Set PostgreSQL password environment variable
+          export PGPASSWORD="$DB_PASSWORD"
+          
+          echo "📊 Database: $DB_NAME on $DB_HOST:$DB_PORT"
+          
+          # Create migrations tracking table if it doesn't exist
+          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
+          CREATE TABLE IF NOT EXISTS schema_migrations (
+            migration_id VARCHAR(50) PRIMARY KEY,
+            applied_at TIMESTAMP DEFAULT NOW()
+          );
+          EOF
+          
+          # Run migrations in order
+          for migration_file in application/backend/migrations/*.sql; do
+            migration_name=$(basename "$migration_file" .sql)
+            
+            # Check if migration has already been applied
+            already_applied=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c \
+              "SELECT COUNT(*) FROM schema_migrations WHERE migration_id = '$migration_name';")
+            
+            if [ "$already_applied" -gt 0 ]; then
+              echo "⏭️  Skipping $migration_name (already applied)"
+            else
+              echo "📝 Applying $migration_name..."
+              
+              if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$migration_file"; then
+                # Record successful migration
+                psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c \
+                  "INSERT INTO schema_migrations (migration_id) VALUES ('$migration_name');"
+                echo "✅ $migration_name applied successfully"
+              else
+                echo "❌ Failed to apply $migration_name"
+                exit 1
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "✅ All database migrations completed successfully"
+          
+          # Unset password
+          unset PGPASSWORD
       
       - name: Verify deployment
         run: |
