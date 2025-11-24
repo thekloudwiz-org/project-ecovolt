@@ -111,7 +111,7 @@ jobs:
           zip -g lambda-deployment.zip functions/*.py
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lambda-package-${{ github.sha }}
           path: application/backend/lambda-deployment.zip
@@ -138,7 +138,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: lambda-package-${{ github.sha }}
           path: ./
@@ -192,7 +192,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: lambda-package-${{ github.sha }}
           path: ./
@@ -237,7 +237,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: lambda-package-${{ github.sha }}
           path: ./
