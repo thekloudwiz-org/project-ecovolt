@@ -340,7 +340,7 @@ resource "aws_lambda_function" "api_handler" {
       DB_NAME                      = var.db_name
       DB_SECRET_ARN                = var.db_secret_arn
       COGNITO_USER_POOL_ID         = var.cognito_user_pool_id
-      COGNITO_CLIENT_ID            = var.cognito_client_id
+      COGNITO_APP_CLIENT_ID        = var.cognito_client_id
       DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
       DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"
