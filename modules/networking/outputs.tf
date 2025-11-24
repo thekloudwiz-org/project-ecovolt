@@ -115,3 +115,19 @@ output "ssm_parameter_prefix" {
   description = "SSM Parameter Store prefix for networking resources"
   value       = local.ssm_prefix
 }
+
+# VPC Endpoint Outputs
+output "secretsmanager_endpoint_id" {
+  description = "Secrets Manager VPC endpoint ID"
+  value       = aws_vpc_endpoint.secretsmanager.id
+}
+
+output "s3_endpoint_id" {
+  description = "S3 VPC endpoint ID"
+  value       = aws_vpc_endpoint.s3.id
+}
+
+output "dynamodb_endpoint_id" {
+  description = "DynamoDB VPC endpoint ID"
+  value       = aws_vpc_endpoint.dynamodb.id
+}
