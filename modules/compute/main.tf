@@ -293,34 +293,41 @@ resource "aws_cloudwatch_log_group" "api_handler" {
   )
 }
 
-# Create ZIP archives for Lambda functions
-# Package the entire backend application
-data "archive_file" "api_handler" {
-  type        = "zip"
-  source_dir  = "${path.root}/application/backend"
-  output_path = "${path.module}/lambda/api_handler.zip"
+# Create placeholder Lambda package
+# The actual code is deployed via CI/CD backend workflow
+resource "null_resource" "lambda_placeholder" {
+  triggers = {
+    always_run = timestamp()
+  }
 
-  excludes = [
-    "tests",
-    "venv",
-    "__pycache__",
-    "*.pyc",
-    "*.pyo",
-    "*.md",
-    ".git",
-    ".gitignore",
-    "*.sh"
-  ]
+  provisioner "local-exec" {
+    command = <<-EOT
+      mkdir -p ${path.module}/lambda
+      if [ ! -f ${path.module}/lambda/api_handler.zip ]; then
+        echo '{"statusCode": 200, "body": "Placeholder - deploy via backend workflow"}' > /tmp/placeholder.py
+        cd /tmp && zip ${path.module}/lambda/api_handler.zip placeholder.py
+        rm /tmp/placeholder.py
+      fi
+    EOT
+  }
+}
+
+# Use the placeholder or existing ZIP file
+# The backend workflow will update this with actual code
+data "local_file" "lambda_package" {
+  filename = "${path.module}/lambda/api_handler.zip"
+  
+  depends_on = [null_resource.lambda_placeholder]
 }
 
 
 # API Handler Lambda Function
 resource "aws_lambda_function" "api_handler" {
-  filename         = data.archive_file.api_handler.output_path
+  filename         = data.local_file.lambda_package.filename
   function_name    = local.api_handler_function_name
   role             = aws_iam_role.lambda_execution.arn
   handler          = "functions.api_handler.handler"
-  source_code_hash = data.archive_file.api_handler.output_base64sha256
+  source_code_hash = filebase64sha256(data.local_file.lambda_package.filename)
   runtime          = var.lambda_runtime
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
@@ -385,11 +392,11 @@ resource "aws_cloudwatch_log_group" "iot_processor" {
 }
 
 resource "aws_lambda_function" "iot_processor" {
-  filename         = data.archive_file.api_handler.output_path
+  filename         = data.local_file.lambda_package.filename
   function_name    = "${local.name_prefix}-iot-processor"
   role             = aws_iam_role.lambda_execution.arn
   handler          = "functions.iot_processor.handler"
-  source_code_hash = data.archive_file.api_handler.output_base64sha256
+  source_code_hash = filebase64sha256(data.local_file.lambda_package.filename)
   runtime          = var.lambda_runtime
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
