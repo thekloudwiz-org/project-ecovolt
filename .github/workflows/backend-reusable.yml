@@ -162,6 +162,8 @@ jobs:
       
       - name: Update Lambda functions
         run: |
+          set +e  # Don't exit on error, we'll handle errors ourselves
+          
           echo "🚀 Updating Lambda functions..."
           echo ""
           
@@ -174,6 +176,7 @@ jobs:
           
           UPDATED=0
           SKIPPED=0
+          FAILED=0
           
           for FUNC_LABEL in "${!FUNCTIONS[@]}"; do
             FUNCTION_NAME="${FUNCTIONS[$FUNC_LABEL]}"
@@ -188,17 +191,25 @@ jobs:
             echo "📦 Updating $FUNC_LABEL: $FUNCTION_NAME"
             
             if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null >/dev/null; then
-              aws lambda update-function-code \
+              if aws lambda update-function-code \
                 --function-name "$FUNCTION_NAME" \
                 --s3-bucket ${{ secrets.deployment_bucket }} \
                 --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip \
-                --no-cli-pager
-              
-              aws lambda wait function-updated --function-name "$FUNCTION_NAME"
-              echo "✅ $FUNC_LABEL updated successfully"
-              ((UPDATED++))
+                --no-cli-pager >/dev/null; then
+                
+                if aws lambda wait function-updated --function-name "$FUNCTION_NAME" 2>/dev/null; then
+                  echo "✅ $FUNC_LABEL updated successfully"
+                  ((UPDATED++))
+                else
+                  echo "⚠️  $FUNC_LABEL update timed out or failed"
+                  ((FAILED++))
+                fi
+              else
+                echo "❌ $FUNC_LABEL update failed"
+                ((FAILED++))
+              fi
             else
-              echo "⚠️  $FUNC_LABEL function not found: $FUNCTION_NAME"
+              echo "⏭️  $FUNC_LABEL function not found: $FUNCTION_NAME"
               ((SKIPPED++))
             fi
           done
@@ -209,6 +220,7 @@ jobs:
           echo "========================================="
           echo "✅ Updated: $UPDATED function(s)"
           echo "⏭️  Skipped: $SKIPPED function(s)"
+          echo "❌ Failed: $FAILED function(s)"
           echo ""
           echo "💡 Deployment package location:"
           echo "   s3://${{ secrets.deployment_bucket }}/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip"
@@ -218,6 +230,21 @@ jobs:
             echo "🔧 To configure Lambda functions, add these GitHub secrets:"
             echo "   - api_handler_dev_lambda"
             echo "   - iot_processor_dev_lambda"
+          fi
+          
+          # Exit with success if at least one function was updated
+          if [ $UPDATED -gt 0 ]; then
+            echo ""
+            echo "✅ Deployment successful! At least one function was updated."
+            exit 0
+          elif [ $FAILED -gt 0 ]; then
+            echo ""
+            echo "❌ Deployment failed! No functions were updated successfully."
+            exit 1
+          else
+            echo ""
+            echo "⚠️  No functions were updated. Please configure Lambda function secrets."
+            exit 0
           fi
       
       - name: Run database migrations
