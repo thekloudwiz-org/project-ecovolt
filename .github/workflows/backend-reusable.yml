@@ -30,12 +30,6 @@ on:
       iot_processor_lambda:
         description: 'IoT Processor Lambda function name'
         required: false
-      stream_processor_lambda:
-        description: 'Stream Processor Lambda function name'
-        required: false
-      data_transformer_lambda:
-        description: 'Data Transformer Lambda function name'
-        required: false
 
 permissions:
   id-token: write   # Required for OIDC
@@ -171,12 +165,12 @@ jobs:
           echo "🚀 Updating Lambda functions..."
           echo ""
           
-          # Define all Lambda functions to update
+          # Define backend Lambda functions to update
+          # Note: stream_processor and data_transformer are in the analytics module
+          # and have their own deployment process
           declare -A FUNCTIONS
           FUNCTIONS["API Handler"]="${{ secrets.api_handler_lambda }}"
           FUNCTIONS["IoT Processor"]="${{ secrets.iot_processor_lambda }}"
-          FUNCTIONS["Stream Processor"]="${{ secrets.stream_processor_lambda }}"
-          FUNCTIONS["Data Transformer"]="${{ secrets.data_transformer_lambda }}"
           
           UPDATED=0
           SKIPPED=0
@@ -224,8 +218,6 @@ jobs:
             echo "🔧 To configure Lambda functions, add these GitHub secrets:"
             echo "   - api_handler_dev_lambda"
             echo "   - iot_processor_dev_lambda"
-            echo "   - stream_processor_dev_lambda"
-            echo "   - data_transformer_dev_lambda"
           fi
       
       - name: Run database migrations

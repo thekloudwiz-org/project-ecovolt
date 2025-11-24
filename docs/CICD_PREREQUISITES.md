@@ -111,31 +111,30 @@ Value: ecovolt-dev-api-handler
 
 iot_processor_dev_lambda
 Value: ecovolt-dev-iot-processor
-
-stream_processor_dev_lambda
-Value: ecovolt-dev-stream-processor
-
-data_transformer_dev_lambda
-Value: ecovolt-dev-data-transformer
 ```
 
 **Staging Environment:**
 ```
 api_handler_staging_lambda
+Value: ecovolt-staging-api-handler
+
 iot_processor_staging_lambda
-stream_processor_staging_lambda
-data_transformer_staging_lambda
+Value: ecovolt-staging-iot-processor
 ```
 
 **Prod Environment:**
 ```
 api_handler_prod_lambda
+Value: ecovolt-prod-api-handler
+
 iot_processor_prod_lambda
-stream_processor_prod_lambda
-data_transformer_prod_lambda
+Value: ecovolt-prod-iot-processor
 ```
 
-**Note:** Only configure the Lambda functions that exist. The workflow will skip any that are not configured.
+**Note:** 
+- Only these 2 functions use the backend application code
+- `stream_processor` and `data_transformer` are in the analytics module and have their own code
+- The workflow will skip any functions that are not configured
 
 #### CloudFront Distribution IDs (if using CloudFront)
 ```
