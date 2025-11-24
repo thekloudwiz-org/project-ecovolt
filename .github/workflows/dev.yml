@@ -1,4 +1,4 @@
-name: Dev Environment
+name: Terraform Dev Environment
 
 on:
   push:

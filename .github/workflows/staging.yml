@@ -1,4 +1,4 @@
-name: Staging Environment
+name: Terraform Staging Environment
 
 on:
   pull_request:

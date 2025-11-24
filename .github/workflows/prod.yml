@@ -1,4 +1,4 @@
-name: Production Environment
+name: Terraform Production Environment
 
 on:
   pull_request:
