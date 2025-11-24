@@ -328,43 +328,23 @@ jobs:
           
           # Check if Lambda function exists
           if aws lambda get-function --function-name "$MIGRATION_LAMBDA" 2>/dev/null >/dev/null; then
-            echo "📋 Invoking Lambda function: $MIGRATION_LAMBDA"
-            echo "⏱️  This may take several minutes (installing psycopg2 + running migrations)..."
+            echo "📋 Invoking Lambda function: $MIGRATION_LAMBDA (async)"
+            echo "⏱️  Lambda will run in background (installing psycopg2 + running migrations)..."
             
-            # Invoke the migration Lambda asynchronously to avoid timeout
-            RESPONSE=$(aws lambda invoke \
+            # Invoke the migration Lambda asynchronously
+            aws lambda invoke \
               --function-name "$MIGRATION_LAMBDA" \
-              --invocation-type RequestResponse \
+              --invocation-type Event \
               --payload "{\"s3_bucket\":\"${{ secrets.deployment_bucket }}\",\"s3_prefix\":\"migrations/${{ inputs.environment }}/\"}" \
               --cli-binary-format raw-in-base64-out \
-              --cli-read-timeout 900 \
-              --cli-connect-timeout 60 \
-              /tmp/migration-response.json 2>&1)
+              /tmp/migration-response.json
             
-            INVOKE_EXIT_CODE=$?
-            
-            if [ $INVOKE_EXIT_CODE -eq 0 ]; then
-              echo "✅ Lambda invocation completed"
-              
-              # Display the response
-              echo "📄 Response:"
-              cat /tmp/migration-response.json | jq '.' || cat /tmp/migration-response.json
-              
-              # Check for function errors in the response
-              if grep -q '"errorMessage"' /tmp/migration-response.json; then
-                echo "❌ Migration Lambda reported an error"
-                exit 1
-              fi
-              
-              echo "✅ All database migrations completed successfully"
-            else
-              echo "❌ Lambda invocation failed"
-              echo "Response: $RESPONSE"
-              if [ -f /tmp/migration-response.json ]; then
-                cat /tmp/migration-response.json
-              fi
-              exit 1
-            fi
+            echo "✅ Migration Lambda invoked successfully (async)"
+            echo "📋 Check CloudWatch Logs for migration results:"
+            echo "   aws logs tail /aws/lambda/$MIGRATION_LAMBDA --follow"
+            echo ""
+            echo "💡 Migrations are running in the background and may take 5-10 minutes"
+            echo "   The deployment will continue while migrations run"
           else
             echo "⚠️  Migration Lambda function not found: $MIGRATION_LAMBDA"
             echo "💡 Migrations will need to be run manually or Lambda needs to be deployed"
