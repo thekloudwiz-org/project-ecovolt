@@ -28,3 +28,4 @@ jobs:
       python_version: '3.11'
     secrets:
       aws_role_arn: ${{ secrets.AWS_ROLE_ARN_PROD }}
+      deployment_bucket: ${{ secrets.DEPLOYMENT_BUCKET }}

@@ -21,6 +21,9 @@ on:
       aws_role_arn:
         description: 'AWS IAM Role ARN for OIDC'
         required: true
+      deployment_bucket:
+        description: 'S3 bucket name for Lambda deployment packages'
+        required: true
 
 permissions:
   id-token: write   # Required for OIDC
@@ -149,14 +152,14 @@ jobs:
       - name: Upload to S3
         run: |
           aws s3 cp lambda-deployment.zip \
-            s3://ecovolt-deployments/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
+            s3://${{ secrets.deployment_bucket }}/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
       
       - name: Update Lambda functions
         run: |
           # Update API handler Lambda
           aws lambda update-function-code \
             --function-name ecovolt-${{ inputs.environment }}-api-handler \
-            --s3-bucket ecovolt-deployments \
+            --s3-bucket ${{ secrets.deployment_bucket }} \
             --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
           
           # Wait for update to complete

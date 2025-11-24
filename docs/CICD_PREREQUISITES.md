@@ -95,6 +95,13 @@ AWS_ROLE_ARN_PROD
 Value: arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActions-EcoVolt-Prod
 ```
 
+#### Deployment Bucket (Required)
+```
+DEPLOYMENT_BUCKET
+Value: ecovolt-deployments
+(or whatever name you chose when creating the bucket)
+```
+
 #### CloudFront Distribution IDs (if using CloudFront)
 ```
 DEV_CLOUDFRONT_DISTRIBUTION_ID
