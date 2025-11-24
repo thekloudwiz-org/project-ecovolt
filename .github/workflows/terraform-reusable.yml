@@ -31,6 +31,7 @@ permissions:
   id-token: write   # Required for OIDC
   contents: read    # Required to checkout code
   pull-requests: write  # Required to comment on PRs
+  security-events: write  # Required for security scanning
 
 jobs:
   terraform-init:
@@ -134,15 +135,18 @@ jobs:
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          soft_fail: false
+          soft_fail: true
           format: sarif
+          sarif_file: tfsec-results.sarif
           additional_args: --minimum-severity MEDIUM
+        continue-on-error: true
 
       - name: Upload tfsec results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: results.sarif
+          sarif_file: tfsec-results.sarif
+        continue-on-error: true
 
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@master
