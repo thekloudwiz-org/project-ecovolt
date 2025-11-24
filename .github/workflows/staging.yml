@@ -4,9 +4,21 @@ on:
   pull_request:
     branches:
       - staging
+    paths:
+      - '**.tf'
+      - 'modules/**'
+      - 'environments/**'
+      - '.github/workflows/staging.yml'
+      - '.github/workflows/terraform-reusable.yml'
   push:
     branches:
       - staging
+    paths:
+      - '**.tf'
+      - 'modules/**'
+      - 'environments/**'
+      - '.github/workflows/staging.yml'
+      - '.github/workflows/terraform-reusable.yml'
 
 permissions:
   id-token: write

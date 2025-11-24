@@ -4,9 +4,21 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - '**.tf'
+      - 'modules/**'
+      - 'environments/**'
+      - '.github/workflows/prod.yml'
+      - '.github/workflows/terraform-reusable.yml'
   push:
     branches:
       - main
+    paths:
+      - '**.tf'
+      - 'modules/**'
+      - 'environments/**'
+      - '.github/workflows/prod.yml'
+      - '.github/workflows/terraform-reusable.yml'
 
 permissions:
   id-token: write
