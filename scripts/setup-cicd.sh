@@ -140,3 +140,16 @@ echo -e "${BLUE}4. Monitor Deployment:${NC}"
 echo "   GitHub Actions: https://github.com/thekloudwiz-org/project-ecovolt/actions"
 echo ""
 echo -e "${GREEN}🎉 You're all set!${NC}"
+
+aws s3api put-bucket-versioning --bucket ecovolt-app-deployment-bucket --versioning-configuration Status=Enabled
+
+aws s3api put-public-access-block --bucket ecovolt-app-deployment-bucket  --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+
+aws s3api put-bucket-tagging --bucket ecovolt-app-deployment-bucket --tagging 'TagSet=[{Key=Project,Value=EcoVolt},{Key=Purpose,Value=CI-CD-Deployments}]'
+
+
+aws s3api put-object --bucket ecovolt-app-deployment-bucket --key backend/dev/
+
+aws s3api put-object --bucket ecovolt-app-deployment-bucket --key backend/staging/
+
+aws s3api put-object --bucket ecovolt-app-deployment-bucket --key backend/prod/

@@ -260,6 +260,22 @@ resource "aws_iam_role_policy" "lambda_iot" {
 }
 
 # Kinesis stream processing policy
+
+# ============================================================================
+# SNS Topic for Application Notifications
+# ============================================================================
+
+resource "aws_sns_topic" "notifications" {
+  name = "${local.name_prefix}-notifications"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-notifications"
+    }
+  )
+}
+
 # ============================================================================
 # Lambda Functions
 # ============================================================================
@@ -327,7 +343,7 @@ resource "aws_lambda_function" "api_handler" {
       DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
       DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"
-      SNS_TOPIC_ARN                = var.sns_topic_arn
+      SNS_TOPIC_ARN                = aws_sns_topic.notifications.arn
       IOT_ENDPOINT                 = var.iot_endpoint
       LOG_LEVEL                    = "INFO"
     }
@@ -394,7 +410,7 @@ resource "aws_lambda_function" "iot_processor" {
       DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
       DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"
-      SNS_TOPIC_ARN                = var.sns_topic_arn
+      SNS_TOPIC_ARN                = aws_sns_topic.notifications.arn
       IOT_ENDPOINT                 = var.iot_endpoint
       LOG_LEVEL                    = "INFO"
     }

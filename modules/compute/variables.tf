@@ -232,12 +232,6 @@ variable "cognito_client_id" {
   default     = ""
 }
 
-variable "sns_topic_arn" {
-  description = "SNS Topic ARN for push notifications"
-  type        = string
-  default     = ""
-}
-
 variable "iot_endpoint" {
   description = "AWS IoT Core endpoint for device communication"
   type        = string

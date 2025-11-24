@@ -247,77 +247,64 @@ jobs:
             exit 0
           fi
       
-      - name: Run database migrations
+      - name: Upload migrations to S3
         run: |
-          echo "🗄️  Running database migrations..."
+          echo "📦 Uploading migration files to S3..."
           
-          # Install PostgreSQL client
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client jq
+          # Upload migration files to S3
+          aws s3 sync application/backend/migrations/ \
+            s3://${{ secrets.deployment_bucket }}/migrations/${{ inputs.environment }}/ \
+            --exclude "*" \
+            --include "*.sql"
           
-          # Get the secret ARN from SSM Parameter Store
-          SECRET_ARN=$(aws ssm get-parameter \
-            --name "/ecovolt/${{ inputs.environment }}/database/secret-arn" \
-            --query Parameter.Value \
-            --output text)
+          echo "✅ Migration files uploaded successfully"
+      
+      - name: Run database migrations via Lambda
+        run: |
+          echo "🗄️  Running database migrations via Lambda..."
           
-          echo "📋 Using secret: $SECRET_ARN"
+          # Get the migration Lambda function name from SSM or use default
+          MIGRATION_LAMBDA="ecovolt-${{ inputs.environment }}-db-migrator"
           
-          # Get database credentials from Secrets Manager using the ARN
-          DB_SECRET=$(aws secretsmanager get-secret-value \
-            --secret-id "$SECRET_ARN" \
-            --query SecretString \
-            --output text)
-          
-          DB_HOST=$(echo $DB_SECRET | jq -r '.host')
-          DB_PORT=$(echo $DB_SECRET | jq -r '.port')
-          DB_NAME=$(echo $DB_SECRET | jq -r '.dbname')
-          DB_USER=$(echo $DB_SECRET | jq -r '.username')
-          DB_PASSWORD=$(echo $DB_SECRET | jq -r '.password')
-          
-          # Set PostgreSQL password environment variable
-          export PGPASSWORD="$DB_PASSWORD"
-          
-          echo "📊 Database: $DB_NAME on $DB_HOST:$DB_PORT"
-          
-          # Create migrations tracking table if it doesn't exist
-          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
-          CREATE TABLE IF NOT EXISTS schema_migrations (
-            migration_id VARCHAR(50) PRIMARY KEY,
-            applied_at TIMESTAMP DEFAULT NOW()
-          );
-          EOF
-          
-          # Run migrations in order
-          for migration_file in application/backend/migrations/*.sql; do
-            migration_name=$(basename "$migration_file" .sql)
+          # Check if Lambda function exists
+          if aws lambda get-function --function-name "$MIGRATION_LAMBDA" 2>/dev/null >/dev/null; then
+            echo "📋 Invoking Lambda function: $MIGRATION_LAMBDA"
             
-            # Check if migration has already been applied
-            already_applied=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c \
-              "SELECT COUNT(*) FROM schema_migrations WHERE migration_id = '$migration_name';")
+            # Invoke the migration Lambda
+            RESPONSE=$(aws lambda invoke \
+              --function-name "$MIGRATION_LAMBDA" \
+              --payload "{\"s3_bucket\":\"${{ secrets.deployment_bucket }}\",\"s3_prefix\":\"migrations/${{ inputs.environment }}/\"}" \
+              --cli-binary-format raw-in-base64-out \
+              /tmp/migration-response.json)
             
-            if [ "$already_applied" -gt 0 ]; then
-              echo "⏭️  Skipping $migration_name (already applied)"
-            else
-              echo "📝 Applying $migration_name..."
+            # Check if invocation was successful
+            STATUS_CODE=$(echo $RESPONSE | jq -r '.StatusCode')
+            
+            if [ "$STATUS_CODE" = "200" ]; then
+              echo "✅ Lambda invocation successful"
               
-              if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$migration_file"; then
-                # Record successful migration
-                psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c \
-                  "INSERT INTO schema_migrations (migration_id) VALUES ('$migration_name');"
-                echo "✅ $migration_name applied successfully"
-              else
-                echo "❌ Failed to apply $migration_name"
+              # Display the response
+              cat /tmp/migration-response.json | jq '.'
+              
+              # Check if migrations were successful
+              FUNCTION_ERROR=$(echo $RESPONSE | jq -r '.FunctionError // "null"')
+              if [ "$FUNCTION_ERROR" != "null" ]; then
+                echo "❌ Migration Lambda reported an error"
+                cat /tmp/migration-response.json
                 exit 1
               fi
+              
+              echo "✅ All database migrations completed successfully"
+            else
+              echo "❌ Lambda invocation failed with status code: $STATUS_CODE"
+              cat /tmp/migration-response.json
+              exit 1
             fi
-          done
-          
-          echo ""
-          echo "✅ All database migrations completed successfully"
-          
-          # Unset password
-          unset PGPASSWORD
+          else
+            echo "⚠️  Migration Lambda function not found: $MIGRATION_LAMBDA"
+            echo "💡 Migrations will need to be run manually or Lambda needs to be deployed"
+            echo "   Run: terraform apply to create the migration Lambda function"
+          fi
       
       - name: Verify deployment
         run: |

@@ -73,9 +73,6 @@ module "dynamodb" {
   enable_vehicle_status_ttl = var.enable_vehicle_status_ttl
   enable_swap_events_ttl    = var.enable_swap_events_ttl
 
-  # Monitoring
-  alarm_sns_topic_arns = [module.monitoring.alarm_topic_arn]
-
   tags = local.common_tags
 }
 
@@ -152,6 +149,7 @@ module "compute" {
   db_endpoint            = module.database.db_endpoint
   db_name                = module.database.db_name
   db_security_group_id   = module.database.db_security_group_id
+  db_secret_arn          = module.database.db_secret_arn
   kinesis_stream_arn     = module.analytics.kinesis_stream_arn
   
   lambda_runtime            = var.lambda_runtime
@@ -160,15 +158,20 @@ module "compute" {
   # Cognito integration
   enable_cognito_authorizer = true  # Cognito user pool is always created
   cognito_user_pool_arn     = module.cognito.customer_user_pool_arn_for_authorizer
+  cognito_user_pool_id      = module.cognito.customer_user_pool_id
+  cognito_client_id         = module.cognito.mobile_app_client_id
 
   # DynamoDB integration
   dynamodb_table_arns    = module.dynamodb.all_table_arns
   dynamodb_stream_arns   = module.dynamodb.all_table_stream_arns
   dynamodb_table_names   = module.dynamodb.all_table_names
 
+  # IoT integration
+  iot_endpoint           = module.iot.iot_endpoint
+
   tags = local.common_tags
 
-  depends_on = [ module.networking, module.analytics ]
+  depends_on = [ module.networking, module.analytics, module.iot ]
 }
 
 # Monitoring Module
@@ -245,9 +248,6 @@ module "waf" {
 
   # Geographic blocking (optional)
   blocked_countries = var.waf_blocked_countries
-
-  # Monitoring
-  alarm_sns_topic_arns = [module.monitoring.alarm_topic_arn]
 
   tags = local.common_tags
 
