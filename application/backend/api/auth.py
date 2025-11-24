@@ -78,24 +78,8 @@ def register(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 })
             }
         
-        # Create user record in database
-        try:
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    Queries.CREATE_USER,
-                    (user_id, email, name, phone, 0.0, 'basic')
-                )
-                user_record = cursor.fetchone()
-        except Exception as db_error:
-            print(f"Database error creating user: {str(db_error)}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({
-                    'error': 'Failed to create user record',
-                    'details': 'User account created but database record failed'
-                })
-            }
+        # Note: User database record will be created automatically on first authenticated API call
+        # This allows the auth Lambda to stay outside VPC for better performance and cost optimization
         
         return {
             'statusCode': 201,

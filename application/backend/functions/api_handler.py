@@ -198,11 +198,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             event['user'] = user
             event['correlation_id'] = correlation_id
             
+            # Ensure user record exists in database (lazy creation)
+            from utils.user_sync import ensure_user_exists
+            db_user = ensure_user_exists(user)
+            if db_user:
+                event['db_user'] = db_user
+            
             print(json.dumps({
                 'correlation_id': correlation_id,
                 'event': 'auth_success',
                 'user_id': user.get('user_id') or user.get('sub'),
-                'route_key': route_key
+                'route_key': route_key,
+                'db_user_synced': db_user is not None
             }))
             
             # Requirement 8.1, 9.6: Check admin routes authorization
