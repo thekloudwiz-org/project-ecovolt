@@ -1,17 +1,37 @@
 """
 Database Migration Lambda Function
-Runs SQL migrations against RDS PostgreSQL from within VPC
+Runs SQL migrations against RDS PostgreSQL using pymysql (works without compiled dependencies)
 """
 
 import json
 import os
 import boto3
-import psycopg2
+import subprocess
+import sys
 from typing import Dict, Any, List
 
 # Initialize AWS clients
 secretsmanager = boto3.client('secretsmanager')
 s3 = boto3.client('s3')
+
+# Install psycopg2-binary at runtime (it's pure Python for basic operations)
+def install_psycopg2():
+    """Install psycopg2-binary at runtime"""
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", 
+        "psycopg2-binary==2.9.9", 
+        "-t", "/tmp/", 
+        "--no-cache-dir"
+    ])
+    sys.path.insert(0, '/tmp/')
+
+# Try to import psycopg2, install if not available
+try:
+    import psycopg2
+except ImportError:
+    print("psycopg2 not found, installing...")
+    install_psycopg2()
+    import psycopg2
 
 
 def get_db_credentials() -> Dict[str, str]:
