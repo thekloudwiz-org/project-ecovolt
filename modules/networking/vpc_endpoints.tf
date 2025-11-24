@@ -1,6 +1,9 @@
 # VPC Endpoints for AWS Services
 # Allows Lambda in private subnets to access AWS services without NAT Gateway
 
+# Data source for current region
+data "aws_region" "current" {}
+
 # Security group for VPC endpoints
 resource "aws_security_group" "vpc_endpoints" {
   name        = "${local.name_prefix}-vpc-endpoints"
