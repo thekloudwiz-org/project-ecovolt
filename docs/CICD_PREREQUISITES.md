@@ -98,9 +98,26 @@ Value: arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActions-EcoVolt-Prod
 #### Deployment Bucket (Required)
 ```
 DEPLOYMENT_BUCKET
-Value: ecovolt-deployments
+Value: ecovolt-deployment-bucket
 (or whatever name you chose when creating the bucket)
 ```
+
+#### Lambda Function Names (Optional but Recommended)
+```
+LAMBDA_FUNCTION_NAME_DEV
+Value: ecovolt-dev-api-handler
+(or your actual Lambda function name for dev)
+
+LAMBDA_FUNCTION_NAME_STAGING
+Value: ecovolt-staging-api-handler
+(or your actual Lambda function name for staging)
+
+LAMBDA_FUNCTION_NAME_PROD
+Value: ecovolt-prod-api-handler
+(or your actual Lambda function name for prod)
+```
+
+**Note:** If not provided, the workflow will use the default naming convention: `ecovolt-{environment}-api-handler`
 
 #### CloudFront Distribution IDs (if using CloudFront)
 ```

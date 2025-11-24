@@ -29,3 +29,4 @@ jobs:
     secrets:
       aws_role_arn: ${{ secrets.AWS_ROLE_ARN_PROD }}
       deployment_bucket: ${{ secrets.DEPLOYMENT_BUCKET }}
+      lambda_function_name: ${{ secrets.LAMBDA_FUNCTION_NAME_PROD }}

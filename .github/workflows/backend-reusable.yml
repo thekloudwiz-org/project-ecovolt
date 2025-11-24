@@ -24,6 +24,9 @@ on:
       deployment_bucket:
         description: 'S3 bucket name for Lambda deployment packages'
         required: true
+      lambda_function_name:
+        description: 'Lambda function name to update'
+        required: false
 
 permissions:
   id-token: write   # Required for OIDC
@@ -156,7 +159,14 @@ jobs:
       
       - name: Update Lambda functions
         run: |
-          FUNCTION_NAME="ecovolt-${{ inputs.environment }}-api-handler"
+          # Use secret if provided, otherwise use default naming convention
+          FUNCTION_NAME="${{ secrets.lambda_function_name }}"
+          if [ -z "$FUNCTION_NAME" ]; then
+            FUNCTION_NAME="ecovolt-${{ inputs.environment }}-api-handler"
+            echo "ℹ️  Using default function name: $FUNCTION_NAME"
+          else
+            echo "ℹ️  Using configured function name: $FUNCTION_NAME"
+          fi
           
           # Check if Lambda function exists
           if aws lambda get-function --function-name $FUNCTION_NAME 2>/dev/null; then
@@ -176,6 +186,9 @@ jobs:
             echo ""
             echo "💡 The deployment package has been uploaded to S3 and is ready to use"
             echo "    S3 Location: s3://${{ secrets.deployment_bucket }}/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip"
+            echo ""
+            echo "🔧 To configure the Lambda function name, add this GitHub secret:"
+            echo "    LAMBDA_FUNCTION_NAME_DEV (or _STAGING, _PROD)"
           fi
       
       - name: Run database migrations
