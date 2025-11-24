@@ -16,11 +16,11 @@ resource "aws_cloudwatch_log_group" "db_migrator" {
 
 # Lambda function for database migrations
 resource "aws_lambda_function" "db_migrator" {
-  filename         = data.local_file.lambda_package.filename
+  filename         = data.archive_file.api_handler.output_path
   function_name    = "${local.name_prefix}-db-migrator"
   role             = aws_iam_role.lambda_execution.arn
   handler          = "functions.db_migrator.handler"
-  source_code_hash = filebase64sha256(data.local_file.lambda_package.filename)
+  source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
   memory_size      = 1024  # More memory for pip install and database operations
   timeout          = 600   # 10 minutes for pip install + migrations
