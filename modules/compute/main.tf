@@ -357,6 +357,15 @@ resource "aws_lambda_function" "api_handler" {
   # Reserved concurrent executions
   reserved_concurrent_executions = var.lambda_reserved_concurrent_executions > 0 ? var.lambda_reserved_concurrent_executions : null
 
+  # Ignore changes to code - managed by backend workflow
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+      last_modified
+    ]
+  }
+
   tags = merge(
     local.common_tags,
     {
@@ -419,6 +428,15 @@ resource "aws_lambda_function" "iot_processor" {
   # X-Ray tracing
   tracing_config {
     mode = var.enable_xray_tracing ? "Active" : "PassThrough"
+  }
+
+  # Ignore changes to code - managed by backend workflow
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+      last_modified
+    ]
   }
 
   tags = merge(
