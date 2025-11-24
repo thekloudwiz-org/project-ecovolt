@@ -24,8 +24,17 @@ on:
       deployment_bucket:
         description: 'S3 bucket name for Lambda deployment packages'
         required: true
-      lambda_function_name:
-        description: 'Lambda function name to update'
+      api_handler_lambda:
+        description: 'API Handler Lambda function name'
+        required: false
+      iot_processor_lambda:
+        description: 'IoT Processor Lambda function name'
+        required: false
+      stream_processor_lambda:
+        description: 'Stream Processor Lambda function name'
+        required: false
+      data_transformer_lambda:
+        description: 'Data Transformer Lambda function name'
         required: false
 
 permissions:
@@ -159,36 +168,64 @@ jobs:
       
       - name: Update Lambda functions
         run: |
-          # Use secret if provided, otherwise use default naming convention
-          FUNCTION_NAME="${{ secrets.lambda_function_name }}"
-          if [ -z "$FUNCTION_NAME" ]; then
-            FUNCTION_NAME="ecovolt-${{ inputs.environment }}-api-handler"
-            echo "ℹ️  Using default function name: $FUNCTION_NAME"
-          else
-            echo "ℹ️  Using configured function name: $FUNCTION_NAME"
-          fi
+          echo "🚀 Updating Lambda functions..."
+          echo ""
           
-          # Check if Lambda function exists
-          if aws lambda get-function --function-name $FUNCTION_NAME 2>/dev/null; then
-            echo "✅ Lambda function exists, updating code..."
-            aws lambda update-function-code \
-              --function-name $FUNCTION_NAME \
-              --s3-bucket ${{ secrets.deployment_bucket }} \
-              --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip
+          # Define all Lambda functions to update
+          declare -A FUNCTIONS
+          FUNCTIONS["API Handler"]="${{ secrets.api_handler_lambda }}"
+          FUNCTIONS["IoT Processor"]="${{ secrets.iot_processor_lambda }}"
+          FUNCTIONS["Stream Processor"]="${{ secrets.stream_processor_lambda }}"
+          FUNCTIONS["Data Transformer"]="${{ secrets.data_transformer_lambda }}"
+          
+          UPDATED=0
+          SKIPPED=0
+          
+          for FUNC_LABEL in "${!FUNCTIONS[@]}"; do
+            FUNCTION_NAME="${FUNCTIONS[$FUNC_LABEL]}"
             
-            # Wait for update to complete
-            aws lambda wait function-updated --function-name $FUNCTION_NAME
-            echo "✅ Lambda function updated successfully"
-          else
-            echo "⚠️  Lambda function $FUNCTION_NAME does not exist yet"
-            echo "📝 Please run Terraform to create the Lambda function first:"
-            echo "    terraform apply -var-file=environments/${{ inputs.environment }}.tfvars"
+            if [ -z "$FUNCTION_NAME" ]; then
+              echo "⏭️  $FUNC_LABEL: No function name configured, skipping"
+              ((SKIPPED++))
+              continue
+            fi
+            
             echo ""
-            echo "💡 The deployment package has been uploaded to S3 and is ready to use"
-            echo "    S3 Location: s3://${{ secrets.deployment_bucket }}/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip"
+            echo "📦 Updating $FUNC_LABEL: $FUNCTION_NAME"
+            
+            if aws lambda get-function --function-name "$FUNCTION_NAME" 2>/dev/null >/dev/null; then
+              aws lambda update-function-code \
+                --function-name "$FUNCTION_NAME" \
+                --s3-bucket ${{ secrets.deployment_bucket }} \
+                --s3-key backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip \
+                --no-cli-pager
+              
+              aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+              echo "✅ $FUNC_LABEL updated successfully"
+              ((UPDATED++))
+            else
+              echo "⚠️  $FUNC_LABEL function not found: $FUNCTION_NAME"
+              ((SKIPPED++))
+            fi
+          done
+          
+          echo ""
+          echo "========================================="
+          echo "📊 Deployment Summary"
+          echo "========================================="
+          echo "✅ Updated: $UPDATED function(s)"
+          echo "⏭️  Skipped: $SKIPPED function(s)"
+          echo ""
+          echo "💡 Deployment package location:"
+          echo "   s3://${{ secrets.deployment_bucket }}/backend/${{ inputs.environment }}/lambda-${{ github.sha }}.zip"
+          
+          if [ $SKIPPED -gt 0 ]; then
             echo ""
-            echo "🔧 To configure the Lambda function name, add this GitHub secret:"
-            echo "    LAMBDA_FUNCTION_NAME_DEV (or _STAGING, _PROD)"
+            echo "🔧 To configure Lambda functions, add these GitHub secrets:"
+            echo "   - api_handler_dev_lambda"
+            echo "   - iot_processor_dev_lambda"
+            echo "   - stream_processor_dev_lambda"
+            echo "   - data_transformer_dev_lambda"
           fi
       
       - name: Run database migrations

@@ -29,4 +29,7 @@ jobs:
     secrets:
       aws_role_arn: ${{ secrets.AWS_ROLE_ARN_STAGING }}
       deployment_bucket: ${{ secrets.DEPLOYMENT_BUCKET }}
-      lambda_function_name: ${{ secrets.LAMBDA_FUNCTION_NAME_STAGING }}
+      api_handler_lambda: ${{ secrets.api_handler_staging_lambda }}
+      iot_processor_lambda: ${{ secrets.iot_processor_staging_lambda }}
+      stream_processor_lambda: ${{ secrets.stream_processor_staging_lambda }}
+      data_transformer_lambda: ${{ secrets.data_transformer_staging_lambda }}

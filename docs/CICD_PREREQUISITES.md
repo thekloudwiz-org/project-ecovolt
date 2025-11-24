@@ -103,21 +103,39 @@ Value: ecovolt-deployment-bucket
 ```
 
 #### Lambda Function Names (Optional but Recommended)
+
+**Dev Environment:**
 ```
-LAMBDA_FUNCTION_NAME_DEV
+api_handler_dev_lambda
 Value: ecovolt-dev-api-handler
-(or your actual Lambda function name for dev)
 
-LAMBDA_FUNCTION_NAME_STAGING
-Value: ecovolt-staging-api-handler
-(or your actual Lambda function name for staging)
+iot_processor_dev_lambda
+Value: ecovolt-dev-iot-processor
 
-LAMBDA_FUNCTION_NAME_PROD
-Value: ecovolt-prod-api-handler
-(or your actual Lambda function name for prod)
+stream_processor_dev_lambda
+Value: ecovolt-dev-stream-processor
+
+data_transformer_dev_lambda
+Value: ecovolt-dev-data-transformer
 ```
 
-**Note:** If not provided, the workflow will use the default naming convention: `ecovolt-{environment}-api-handler`
+**Staging Environment:**
+```
+api_handler_staging_lambda
+iot_processor_staging_lambda
+stream_processor_staging_lambda
+data_transformer_staging_lambda
+```
+
+**Prod Environment:**
+```
+api_handler_prod_lambda
+iot_processor_prod_lambda
+stream_processor_prod_lambda
+data_transformer_prod_lambda
+```
+
+**Note:** Only configure the Lambda functions that exist. The workflow will skip any that are not configured.
 
 #### CloudFront Distribution IDs (if using CloudFront)
 ```
