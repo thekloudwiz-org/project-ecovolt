@@ -1,0 +1,27 @@
+name: Dev Environment
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-dev:
+    name: Terraform Dev
+    uses: ./.github/workflows/terraform-reusable.yml
+    with:
+      environment: dev
+      terraform_version: '1.5'
+      aws_region: 'eu-central-1'
+      # Apply on push to dev branch, but not on PR
+      run_apply: ${{ github.event_name == 'push' }}
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_DEV }}

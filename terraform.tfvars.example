@@ -1,0 +1,24 @@
+# EcoVolt Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+# Required Variables
+environment = "dev" # dev, staging, or prod
+aws_region  = "eu-central-1"
+
+# Database Credentials (use AWS Secrets Manager in production)
+db_username = "ecovolt_admin"
+db_password = "CHANGE_ME_STRONG_PASSWORD"
+
+# Monitoring
+alarm_email = "ops@example.com"
+
+# Billing Alerts
+budget_alert_emails = ["finance@example.com", "ops@example.com"]
+budget_alert_phones = ["+12025551234"] # E.164 format
+
+# Optional: Custom Domain
+# domain_name = "app.ecovolt.example.com"
+
+# Optional: KMS Key Administrators
+# kms_key_admins = ["arn:aws:iam::123456789012:user/admin"]

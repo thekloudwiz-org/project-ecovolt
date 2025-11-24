@@ -1,0 +1,27 @@
+name: Production Environment
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-prod:
+    name: Terraform Production
+    uses: ./.github/workflows/terraform-reusable.yml
+    with:
+      environment: prod
+      terraform_version: '1.5'
+      aws_region: 'eu-central-1'
+      # Apply only on merge (push), not on PR
+      run_apply: ${{ github.event_name == 'push' }}
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_PROD }}

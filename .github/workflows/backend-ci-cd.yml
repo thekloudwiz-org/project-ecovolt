@@ -1,0 +1,319 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - staging
+    paths:
+      - 'application/backend/**'
+      - '.github/workflows/backend-ci-cd.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'application/backend/**'
+
+env:
+  PYTHON_VERSION: '3.11'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('application/backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          cd application/backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov hypothesis
+      
+      - name: Run syntax validation
+        run: |
+          cd application/backend
+          python -m py_compile api/*.py models/*.py utils/*.py
+      
+      - name: Run unit tests
+        run: |
+          cd application/backend
+          # pytest tests/ --cov=. --cov-report=xml --cov-report=term
+          echo "Unit tests would run here"
+      
+      - name: Run property-based tests
+        run: |
+          cd application/backend
+          # pytest tests/properties/ --hypothesis-show-statistics
+          echo "Property-based tests would run here"
+      
+      - name: Upload coverage reports
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./application/backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  build:
+    name: Build Lambda Package
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Create deployment package
+        run: |
+          cd application/backend
+          
+          # Create package directory
+          mkdir -p package
+          
+          # Install dependencies
+          pip install -r requirements.txt -t package/
+          
+          # Copy source code
+          cp -r api models utils package/
+          
+          # Create zip file
+          cd package
+          zip -r ../lambda-deployment.zip .
+          cd ..
+          
+          # Add function handlers
+          zip -g lambda-deployment.zip functions/*.py
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: lambda-package-${{ github.sha }}
+          path: application/backend/lambda-deployment.zip
+          retention-days: 30
+
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    environment:
+      name: development
+      url: https://dev-api.ecovolt.thekloudwiz.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: lambda-package-${{ github.sha }}
+          path: ./
+      
+      - name: Upload to S3
+        run: |
+          aws s3 cp lambda-deployment.zip \
+            s3://ecovolt-deployments/backend/dev/lambda-${{ github.sha }}.zip
+      
+      - name: Update Lambda functions
+        run: |
+          # Update API handler Lambda
+          aws lambda update-function-code \
+            --function-name ecovolt-dev-api-handler \
+            --s3-bucket ecovolt-deployments \
+            --s3-key backend/dev/lambda-${{ github.sha }}.zip
+          
+          # Wait for update to complete
+          aws lambda wait function-updated \
+            --function-name ecovolt-dev-api-handler
+      
+      - name: Run database migrations
+        run: |
+          echo "Database migrations would run here"
+          # This would typically connect to RDS and run migration scripts
+      
+      - name: Verify deployment
+        run: |
+          # Health check
+          curl -f https://dev-api.ecovolt.thekloudwiz.com/health || exit 1
+          echo "Deployment verified successfully"
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging-api.ecovolt.thekloudwiz.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: lambda-package-${{ github.sha }}
+          path: ./
+      
+      - name: Upload to S3
+        run: |
+          aws s3 cp lambda-deployment.zip \
+            s3://ecovolt-deployments/backend/staging/lambda-${{ github.sha }}.zip
+      
+      - name: Update Lambda functions
+        run: |
+          aws lambda update-function-code \
+            --function-name ecovolt-staging-api-handler \
+            --s3-bucket ecovolt-deployments \
+            --s3-key backend/staging/lambda-${{ github.sha }}.zip
+          
+          aws lambda wait function-updated \
+            --function-name ecovolt-staging-api-handler
+      
+      - name: Verify deployment
+        run: |
+          curl -f https://staging-api.ecovolt.thekloudwiz.com/health || exit 1
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://api.ecovolt.thekloudwiz.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: lambda-package-${{ github.sha }}
+          path: ./
+      
+      - name: Upload to S3
+        run: |
+          aws s3 cp lambda-deployment.zip \
+            s3://ecovolt-deployments/backend/prod/lambda-${{ github.sha }}.zip
+      
+      - name: Create Lambda version
+        id: create-version
+        run: |
+          VERSION=$(aws lambda publish-version \
+            --function-name ecovolt-prod-api-handler \
+            --description "Deployment ${{ github.sha }}" \
+            --query 'Version' \
+            --output text)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name ecovolt-prod-api-handler \
+            --s3-bucket ecovolt-deployments \
+            --s3-key backend/prod/lambda-${{ github.sha }}.zip
+          
+          aws lambda wait function-updated \
+            --function-name ecovolt-prod-api-handler
+      
+      - name: Update alias to new version
+        run: |
+          aws lambda update-alias \
+            --function-name ecovolt-prod-api-handler \
+            --name live \
+            --function-version ${{ steps.create-version.outputs.version }}
+      
+      - name: Verify deployment
+        run: |
+          curl -f https://api.ecovolt.thekloudwiz.com/health || exit 1
+          echo "Production deployment verified"
+      
+      - name: Notify deployment
+        if: always()
+        run: |
+          echo "Deployment notification would be sent here (Slack, email, etc.)"
+
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/main'
+    needs: deploy-prod
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Get previous version
+        id: get-previous
+        run: |
+          PREV_VERSION=$(aws lambda list-versions-by-function \
+            --function-name ecovolt-prod-api-handler \
+            --query 'Versions[-2].Version' \
+            --output text)
+          echo "version=$PREV_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Rollback to previous version
+        run: |
+          aws lambda update-alias \
+            --function-name ecovolt-prod-api-handler \
+            --name live \
+            --function-version ${{ steps.get-previous.outputs.version }}
+      
+      - name: Notify rollback
+        run: |
+          echo "ROLLBACK: Production rolled back to version ${{ steps.get-previous.outputs.version }}"

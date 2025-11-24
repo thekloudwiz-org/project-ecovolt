@@ -1,0 +1,27 @@
+name: Staging Environment
+
+on:
+  pull_request:
+    branches:
+      - staging
+  push:
+    branches:
+      - staging
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-staging:
+    name: Terraform Staging
+    uses: ./.github/workflows/terraform-reusable.yml
+    with:
+      environment: staging
+      terraform_version: '1.5'
+      aws_region: 'eu-central-1'
+      # Apply only on merge (push), not on PR
+      run_apply: ${{ github.event_name == 'push' }}
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_STAGING }}

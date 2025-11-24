@@ -1,0 +1,297 @@
+name: Terraform Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, staging, prod)'
+        required: true
+        type: string
+      terraform_version:
+        description: 'Terraform version'
+        required: false
+        type: string
+        default: '1.5'
+      aws_region:
+        description: 'AWS region'
+        required: false
+        type: string
+        default: 'eu-central-1'
+      run_apply:
+        description: 'Whether to run terraform apply'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      aws_role_arn:
+        description: 'AWS IAM Role ARN for OIDC'
+        required: true
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required to checkout code
+  pull-requests: write  # Required to comment on PRs
+
+jobs:
+  terraform-init:
+    name: Initialize
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: GitHubActions-${{ inputs.environment }}
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=terraform-${{ inputs.environment }}-${{ hashFiles('**/*.tf', '.terraform.lock.hcl') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache Terraform
+        uses: actions/cache@v3
+        with:
+          path: |
+            .terraform
+            .terraform.lock.hcl
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            terraform-${{ inputs.environment }}-
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
+
+  terraform-validate:
+    name: Validate & Format
+    runs-on: ubuntu-latest
+    needs: terraform-init
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Restore Terraform Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            .terraform
+            .terraform.lock.hcl
+          key: ${{ needs.terraform-init.outputs.cache-key }}
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Init (if cache miss)
+        if: steps.fmt.outcome == 'failure'
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      - name: Comment Format Results on PR
+        if: github.event_name == 'pull_request' && steps.fmt.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Terraform Format Check Failed**\n\nPlease run `terraform fmt -recursive` locally and commit the changes.'
+            })
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          soft_fail: false
+          format: sarif
+          additional_args: --minimum-severity MEDIUM
+
+      - name: Upload tfsec results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true
+          output_format: cli
+
+  terraform-plan:
+    name: Plan (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [terraform-init, security-scan]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: false
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: GitHubActions-${{ inputs.environment }}-plan
+
+      - name: Restore Terraform Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            .terraform
+            .terraform.lock.hcl
+          key: ${{ needs.terraform-init.outputs.cache-key }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var-file=environments/${{ inputs.environment }}.tfvars \
+            -out=${{ inputs.environment }}.tfplan \
+            -no-color | tee plan-output.txt
+        continue-on-error: true
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: |
+            ${{ inputs.environment }}.tfplan
+            plan-output.txt
+          retention-days: 5
+
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan-output.txt', 'utf8');
+            const truncatedPlan = plan.length > 65000 ? plan.substring(0, 65000) + '\n\n... (truncated)' : plan;
+            
+            const output = `#### Terraform Plan for \`${{ inputs.environment }}\` 📖
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${truncatedPlan}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Fail if plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  terraform-apply:
+    name: Apply (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: inputs.run_apply == true
+    environment:
+      name: ${{ inputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: GitHubActions-${{ inputs.environment }}-apply
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve ${{ inputs.environment }}.tfplan
+
+      - name: Terraform Output
+        id: output
+        run: terraform output -json > outputs.json
+
+      - name: Upload Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-${{ inputs.environment }}
+          path: outputs.json
+          retention-days: 30
+
+      - name: Comment Apply Success on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **Terraform Apply Successful** for `${{ inputs.environment }}`\n\nInfrastructure has been updated.'
+            })
