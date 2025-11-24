@@ -326,11 +326,9 @@ resource "aws_lambda_function" "api_handler" {
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
 
-  # VPC configuration
-  vpc_config {
-    subnet_ids         = var.private_subnet_ids
-    security_group_ids = [aws_security_group.lambda.id]
-  }
+  # No VPC configuration - runs outside VPC to access Cognito
+  # Cognito User Pools with ManagedLogin don't support VPC endpoints
+  # Database operations use DynamoDB (public service) instead of RDS
 
   # Environment variables
   environment {
@@ -404,7 +402,7 @@ resource "aws_lambda_function" "iot_processor" {
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
 
-  # VPC configuration
+  # VPC configuration - needed for database access
   vpc_config {
     subnet_ids         = var.private_subnet_ids
     security_group_ids = [aws_security_group.lambda.id]
