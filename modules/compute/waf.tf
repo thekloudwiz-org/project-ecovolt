@@ -110,43 +110,39 @@ resource "aws_wafv2_web_acl" "api_gateway" {
     }
   }
 
-  # Rule 5: Block requests with no User-Agent
-  rule {
-    name     = "BlockNoUserAgent"
-    priority = 5
+  # Rule 5: Block requests with no User-Agent (disabled for now - causing false positives)
+  # rule {
+  #   name     = "BlockNoUserAgent"
+  #   priority = 5
 
-    action {
-      block {}
-    }
+  #   action {
+  #     count {}  # Changed to count instead of block for monitoring
+  #   }
 
-    statement {
-      not_statement {
-        statement {
-          byte_match_statement {
-            search_string         = "user-agent"
-            positional_constraint = "CONTAINS"
+  #   statement {
+  #     size_constraint_statement {
+  #       comparison_operator = "EQ"
+  #       size                = 0
 
-            field_to_match {
-              single_header {
-                name = "user-agent"
-              }
-            }
+  #       field_to_match {
+  #         single_header {
+  #           name = "user-agent"
+  #         }
+  #       }
 
-            text_transformation {
-              priority = 0
-              type     = "LOWERCASE"
-            }
-          }
-        }
-      }
-    }
+  #       text_transformation {
+  #         priority = 0
+  #         type     = "NONE"
+  #       }
+  #     }
+  #   }
 
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "${local.name_prefix}-no-user-agent"
-      sampled_requests_enabled   = true
-    }
-  }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "${local.name_prefix}-no-user-agent"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
