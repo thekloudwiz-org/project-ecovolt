@@ -29,6 +29,16 @@ output "iot_processor_function_arn" {
   value       = aws_lambda_function.iot_processor.arn
 }
 
+output "db_migrator_function_name" {
+  description = "Database migrator Lambda function name"
+  value       = aws_lambda_function.db_migrator.function_name
+}
+
+output "db_migrator_function_arn" {
+  description = "Database migrator Lambda function ARN"
+  value       = aws_lambda_function.db_migrator.arn
+}
+
 output "lambda_execution_role_arn" {
   description = "Lambda execution IAM role ARN"
   value       = aws_iam_role.lambda_execution.arn

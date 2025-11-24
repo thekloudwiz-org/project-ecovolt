@@ -173,6 +173,7 @@ jobs:
           declare -A FUNCTIONS
           FUNCTIONS["API Handler"]="${{ secrets.api_handler_lambda }}"
           FUNCTIONS["IoT Processor"]="${{ secrets.iot_processor_lambda }}"
+          FUNCTIONS["DB Migrator"]="ecovolt-${{ inputs.environment }}-db-migrator"
           
           UPDATED=0
           SKIPPED=0
@@ -264,6 +265,65 @@ jobs:
           echo "🗄️  Running database migrations via Lambda..."
           
           # Get the migration Lambda function name from SSM or use default
+          MIGRATION_LAMBDA="ecovolt-${{ inputs.environment }}-db-migrator"
+          
+          # Check if Lambda function exists
+          if aws lambda get-function --function-name "$MIGRATION_LAMBDA" 2>/dev/null >/dev/null; then
+            echo "📋 Invoking Lambda function: $MIGRATION_LAMBDA"
+            
+            # Invoke the migration Lambda
+            RESPONSE=$(aws lambda invoke \
+              --function-name "$MIGRATION_LAMBDA" \
+              --payload "{\"s3_bucket\":\"${{ secrets.deployment_bucket }}\",\"s3_prefix\":\"migrations/${{ inputs.environment }}/\"}" \
+              --cli-binary-format raw-in-base64-out \
+              /tmp/migration-response.json)
+            
+            # Check if invocation was successful
+            STATUS_CODE=$(echo $RESPONSE | jq -r '.StatusCode')
+            
+            if [ "$STATUS_CODE" = "200" ]; then
+              echo "✅ Lambda invocation successful"
+              
+              # Display the response
+              cat /tmp/migration-response.json | jq '.'
+              
+              # Check if migrations were successful
+              FUNCTION_ERROR=$(echo $RESPONSE | jq -r '.FunctionError // "null"')
+              if [ "$FUNCTION_ERROR" != "null" ]; then
+                echo "❌ Migration Lambda reported an error"
+                cat /tmp/migration-response.json
+                exit 1
+              fi
+              
+              echo "✅ All database migrations completed successfully"
+            else
+              echo "❌ Lambda invocation failed with status code: $STATUS_CODE"
+              cat /tmp/migration-response.json
+              exit 1
+            fi
+          else
+            echo "⚠️  Migration Lambda function not found: $MIGRATION_LAMBDA"
+            echo "💡 Migrations will need to be run manually or Lambda needs to be deployed"
+            echo "   Run: terraform apply to create the migration Lambda function"
+          fi
+      
+      - name: Upload migrations to S3
+        run: |
+          echo "📦 Uploading migration files to S3..."
+          
+          # Upload migration files to S3
+          aws s3 sync application/backend/migrations/ \
+            s3://${{ secrets.deployment_bucket }}/migrations/${{ inputs.environment }}/ \
+            --exclude "*" \
+            --include "*.sql"
+          
+          echo "✅ Migration files uploaded successfully"
+      
+      - name: Run database migrations via Lambda
+        run: |
+          echo "🗄️  Running database migrations via Lambda..."
+          
+          # Get the migration Lambda function name
           MIGRATION_LAMBDA="ecovolt-${{ inputs.environment }}-db-migrator"
           
           # Check if Lambda function exists
