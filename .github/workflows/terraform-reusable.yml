@@ -89,6 +89,7 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
 
       - name: Restore Terraform Cache
+        id: cache
         uses: actions/cache@v3
         with:
           path: |
@@ -96,14 +97,14 @@ jobs:
             .terraform.lock.hcl
           key: ${{ needs.terraform-init.outputs.cache-key }}
 
+      - name: Terraform Init (if cache miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: terraform init -backend=false
+
       - name: Terraform Format Check
         id: fmt
         run: terraform fmt -check -recursive
         continue-on-error: true
-
-      - name: Terraform Init (if cache miss)
-        if: steps.fmt.outcome == 'failure'
-        run: terraform init -backend=false
 
       - name: Terraform Validate
         id: validate
