@@ -107,30 +107,20 @@ jobs:
           cd application/admin-portal
           npm install
       
-      - name: Set environment variables
-        run: |
-          cd application/admin-portal
-          if [ -n "${{ secrets.api_url }}" ]; then
-            echo "VITE_API_URL=${{ secrets.api_url }}" >> .env.production
-          else
-            echo "⚠️  API_URL not configured"
-          fi
-          if [ -n "${{ secrets.user_pool_id }}" ]; then
-            echo "VITE_USER_POOL_ID=${{ secrets.user_pool_id }}" >> .env.production
-          else
-            echo "⚠️  USER_POOL_ID not configured"
-          fi
-          if [ -n "${{ secrets.user_pool_client_id }}" ]; then
-            echo "VITE_USER_POOL_CLIENT_ID=${{ secrets.user_pool_client_id }}" >> .env.production
-          else
-            echo "⚠️  USER_POOL_CLIENT_ID not configured"
-          fi
-          echo "VITE_AWS_REGION=${{ inputs.aws_region }}" >> .env.production
-          echo "VITE_ENVIRONMENT=${{ inputs.environment }}" >> .env.production
-      
       - name: Build application
+        env:
+          VITE_API_URL: ${{ secrets.api_url }}
+          VITE_USER_POOL_ID: ${{ secrets.user_pool_id }}
+          VITE_USER_POOL_CLIENT_ID: ${{ secrets.user_pool_client_id }}
+          VITE_AWS_REGION: ${{ inputs.aws_region }}
+          VITE_ENVIRONMENT: ${{ inputs.environment }}
         run: |
           cd application/admin-portal
+          echo "🔧 Building with configuration:"
+          echo "  API URL: ${VITE_API_URL:0:30}..."
+          echo "  User Pool ID: ${VITE_USER_POOL_ID}"
+          echo "  Client ID: ${VITE_USER_POOL_CLIENT_ID}"
+          echo "  Region: ${VITE_AWS_REGION}"
           npm run build
       
       - name: Upload build artifact
