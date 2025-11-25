@@ -118,3 +118,22 @@ output "admin_portal_url" {
   description = "Admin portal URL"
   value       = module.admin_portal.admin_portal_url
 }
+
+# ========================================
+# Cognito Outputs
+# ========================================
+
+output "user_pool_id" {
+  description = "Cognito User Pool ID"
+  value       = module.cognito.customer_user_pool_id
+}
+
+output "admin_portal_client_id" {
+  description = "Admin Portal Cognito Client ID"
+  value       = module.cognito.admin_portal_client_id
+}
+
+output "mobile_app_client_id" {
+  description = "Mobile App Cognito Client ID"
+  value       = module.cognito.mobile_app_client_id
+}

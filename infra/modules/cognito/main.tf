@@ -214,13 +214,18 @@ resource "aws_cognito_user_pool_client" "admin_portal" {
   name         = "${var.project_name}-admin-portal"
   user_pool_id = var.create_separate_admin_pool ? aws_cognito_user_pool.admins[0].id : aws_cognito_user_pool.customers.id
 
-  generate_secret = true # Confidential client (web app)
+  generate_secret = false # Public client (browser-based SPA)
 
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
   callback_urls                        = var.admin_portal_callback_urls
   logout_urls                          = var.admin_portal_logout_urls
+  
+  explicit_auth_flows = [
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
+  ]
 
   # Token validity
   id_token_validity      = 60  # 60 minutes
@@ -246,11 +251,6 @@ resource "aws_cognito_user_pool_client" "admin_portal" {
     "email",
     "name",
     "phone_number"
-  ]
-
-  explicit_auth_flows = [
-    "ALLOW_USER_SRP_AUTH",
-    "ALLOW_REFRESH_TOKEN_AUTH"
   ]
 }
 
