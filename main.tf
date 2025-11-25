@@ -156,7 +156,8 @@ module "compute" {
   enable_xray_tracing       = var.enable_xray_tracing
 
   # Cognito integration
-  enable_cognito_authorizer = true  # Cognito user pool is always created
+  # Disabled: Auth handled in Lambda code, not API Gateway
+  enable_cognito_authorizer = false
   cognito_user_pool_arn     = module.cognito.customer_user_pool_arn_for_authorizer
   cognito_user_pool_id      = module.cognito.customer_user_pool_id
   cognito_client_id         = module.cognito.mobile_app_client_id
