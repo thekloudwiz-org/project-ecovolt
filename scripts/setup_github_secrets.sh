@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Script to set up GitHub secrets from Terraform outputs
+
+set -e
+
+ENVIRONMENT=${1:-dev}
+ENVIRONMENT_UPPER=$(echo "$ENVIRONMENT" | tr '[:lower:]' '[:upper:]')
+
+echo "🔐 Setting up GitHub secrets for $ENVIRONMENT environment..."
+echo ""
+
+# Change to infra directory
+cd infra
+
+# Get Terraform outputs
+echo "📊 Fetching Terraform outputs..."
+S3_BUCKET=$(terraform output -raw admin_portal_s3_bucket)
+CLOUDFRONT_ID=$(terraform output -raw admin_portal_cloudfront_id)
+API_URL=$(terraform output -raw api_gateway_url)
+
+echo "✅ Outputs retrieved:"
+echo "  S3 Bucket: $S3_BUCKET"
+echo "  CloudFront ID: $CLOUDFRONT_ID"
+echo "  API URL: $API_URL"
+echo ""
+
+# Set GitHub secrets
+echo "🔧 Setting GitHub secrets..."
+
+# Admin Portal S3 Bucket
+gh secret set ADMIN_PORTAL_S3_BUCKET_${ENVIRONMENT_UPPER} --body "$S3_BUCKET"
+echo "  ✅ ADMIN_PORTAL_S3_BUCKET_${ENVIRONMENT_UPPER}"
+
+# Admin Portal CloudFront Distribution ID
+gh secret set ADMIN_PORTAL_CLOUDFRONT_ID_${ENVIRONMENT_UPPER} --body "$CLOUDFRONT_ID"
+echo "  ✅ ADMIN_PORTAL_CLOUDFRONT_ID_${ENVIRONMENT_UPPER}"
+
+# API URL
+gh secret set API_URL_${ENVIRONMENT_UPPER} --body "$API_URL"
+echo "  ✅ API_URL_${ENVIRONMENT_UPPER}"
+
+echo ""
+echo "✅ GitHub secrets configured successfully!"
+echo ""
+echo "📋 Configured secrets:"
+echo "  - ADMIN_PORTAL_S3_BUCKET_${ENVIRONMENT_UPPER}"
+echo "  - ADMIN_PORTAL_CLOUDFRONT_ID_${ENVIRONMENT_UPPER}"
+echo "  - API_URL_${ENVIRONMENT_UPPER}"
+echo ""
+echo "🚀 Admin portal workflow is now ready to deploy!"

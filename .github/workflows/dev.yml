@@ -5,18 +5,14 @@ on:
     branches:
       - dev
     paths:
-      - '**.tf'
-      - 'modules/**'
-      - 'environments/**'
+      - 'infra/**'
       - '.github/workflows/dev.yml'
       - '.github/workflows/terraform-reusable.yml'
   pull_request:
     branches:
       - dev
     paths:
-      - '**.tf'
-      - 'modules/**'
-      - 'environments/**'
+      - 'infra/**'
       - '.github/workflows/dev.yml'
       - '.github/workflows/terraform-reusable.yml'
 
@@ -34,6 +30,7 @@ jobs:
       environment: dev
       terraform_version: '1.5'
       aws_region: 'eu-central-1'
+      working_directory: 'infra'
       # Apply on push to dev branch, but not on PR
       run_apply: ${{ github.event_name == 'push' }}
     secrets:

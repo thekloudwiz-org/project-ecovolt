@@ -1,0 +1,228 @@
+name: Mobile App CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'application/mobile/**'
+      - '.github/workflows/mobile-app-ci-cd.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'application/mobile/**'
+
+env:
+  NODE_VERSION: '18'
+  JAVA_VERSION: '17'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: application/mobile/EcoVolt/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd application/mobile/EcoVolt
+          npm ci
+      
+      - name: Run linter
+        run: |
+          cd application/mobile/EcoVolt
+          npm run lint || echo "Linter not configured, skipping"
+      
+      - name: Run type check
+        run: |
+          cd application/mobile/EcoVolt
+          npm run type-check || echo "Type check not configured, skipping"
+      
+      - name: Run unit tests
+        run: |
+          cd application/mobile/EcoVolt
+          npm test -- --coverage --watchAll=false || echo "Tests not configured, skipping"
+      
+      - name: Upload coverage
+        if: hashFiles('application/mobile/EcoVolt/coverage/coverage-final.json') != ''
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./application/mobile/EcoVolt/coverage/coverage-final.json
+          flags: mobile
+          name: mobile-coverage
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+      
+      - name: Install dependencies
+        run: |
+          cd application/mobile/EcoVolt
+          npm ci
+      
+      - name: Build Android APK
+        run: |
+          cd application/mobile/EcoVolt/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ github.sha }}
+          path: application/mobile/EcoVolt/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd application/mobile/EcoVolt
+          npm ci
+      
+      - name: Install CocoaPods
+        run: |
+          cd application/mobile/EcoVolt/ios
+          pod install
+      
+      - name: Build iOS
+        run: |
+          cd application/mobile/EcoVolt/ios
+          xcodebuild -workspace EcoVolt.xcworkspace \
+            -scheme EcoVolt \
+            -configuration Release \
+            -archivePath build/EcoVolt.xcarchive \
+            archive
+      
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-${{ github.sha }}
+          path: application/mobile/EcoVolt/ios/build/EcoVolt.xcarchive
+          retention-days: 30
+
+  deploy-android-dev:
+    name: Deploy Android to Firebase App Distribution (Dev)
+    runs-on: ubuntu-latest
+    needs: build-android
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push' && secrets.FIREBASE_ANDROID_APP_ID != ''
+    
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-${{ github.sha }}
+      
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: app-release.apk
+          releaseNotes: "Development build from commit ${{ github.sha }}"
+
+  deploy-android-prod:
+    name: Deploy Android to Google Play
+    runs-on: ubuntu-latest
+    needs: build-android
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT != ''
+    environment:
+      name: production
+    
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-${{ github.sha }}
+      
+      - name: Upload to Google Play Internal Testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          packageName: com.ecovolt.mobile
+          releaseFiles: app-release.apk
+          track: internal
+          status: completed
+
+  deploy-ios-dev:
+    name: Deploy iOS to TestFlight (Dev)
+    runs-on: macos-latest
+    needs: build-ios
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push' && secrets.APPLE_ID != ''
+    
+    steps:
+      - name: Download iOS build
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-build-${{ github.sha }}
+      
+      - name: Upload to TestFlight
+        run: |
+          echo "TestFlight upload would happen here"
+          # xcrun altool --upload-app --type ios --file EcoVolt.ipa \
+          #   --username ${{ secrets.APPLE_ID }} \
+          #   --password ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+  deploy-ios-prod:
+    name: Deploy iOS to App Store
+    runs-on: macos-latest
+    needs: build-ios
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.APPLE_ID != ''
+    environment:
+      name: production
+    
+    steps:
+      - name: Download iOS build
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-build-${{ github.sha }}
+      
+      - name: Upload to App Store
+        run: |
+          echo "App Store upload would happen here"
+          # xcrun altool --upload-app --type ios --file EcoVolt.ipa \
+          #   --username ${{ secrets.APPLE_ID }} \
+          #   --password ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}

@@ -1,0 +1,36 @@
+name: Admin Portal Dev Environment
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'application/admin-portal/**'
+      - '.github/workflows/admin-portal-dev.yml'
+      - '.github/workflows/admin-portal-reusable.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'application/admin-portal/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  admin-portal-dev:
+    name: Admin Portal Dev
+    uses: ./.github/workflows/admin-portal-reusable.yml
+    with:
+      environment: dev
+      node_version: '18'
+      aws_region: 'eu-central-1'
+      # Deploy on push to dev branch, but not on PR
+      run_deploy: ${{ github.event_name == 'push' }}
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_DEV }}
+      s3_bucket: ${{ secrets.ADMIN_PORTAL_S3_BUCKET_DEV }}
+      cloudfront_distribution_id: ${{ secrets.ADMIN_PORTAL_CLOUDFRONT_ID_DEV }}
+      api_url: ${{ secrets.API_URL_DEV }}
+

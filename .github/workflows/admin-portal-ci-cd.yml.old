@@ -1,0 +1,290 @@
+name: Admin Portal CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - staging
+    paths:
+      - 'application/admin-portal/**'
+      - '.github/workflows/admin-portal-ci-cd.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'application/admin-portal/**'
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required to checkout code
+
+env:
+  NODE_VERSION: '18'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: application/admin-portal/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd application/admin-portal
+          npm ci
+      
+      - name: Run linter
+        run: |
+          cd application/admin-portal
+          npm run lint
+      
+      - name: Run type check
+        run: |
+          cd application/admin-portal
+          npm run type-check
+      
+      - name: Run unit tests
+        run: |
+          cd application/admin-portal
+          npm test -- --coverage --watchAll=false
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./application/admin-portal/coverage/coverage-final.json
+          flags: admin-portal
+          name: admin-portal-coverage
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd application/admin-portal
+          npm ci
+      
+      - name: Set environment variables
+        run: |
+          cd application/admin-portal
+          if [ "${{ matrix.environment }}" == "dev" ]; then
+            echo "REACT_APP_API_URL=https://dev-api.ecovolt.thekloudwiz.com" >> .env.production
+          elif [ "${{ matrix.environment }}" == "staging" ]; then
+            echo "REACT_APP_API_URL=https://staging-api.ecovolt.thekloudwiz.com" >> .env.production
+          else
+            echo "REACT_APP_API_URL=https://api.ecovolt.thekloudwiz.com" >> .env.production
+          fi
+      
+      - name: Build application
+        run: |
+          cd application/admin-portal
+          npm run build
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-portal-${{ matrix.environment }}-${{ github.sha }}
+          path: application/admin-portal/build
+          retention-days: 30
+
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push' && secrets.AWS_ROLE_ARN_DEV != ''
+    environment:
+      name: development
+      url: https://dev-admin.ecovolt.thekloudwiz.com
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          role-session-name: GitHubActions-AdminPortal-Dev
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-portal-dev-${{ github.sha }}
+          path: ./build
+      
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./build s3://ecovolt-dev-admin-portal/ --delete
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.DEV_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+      
+      - name: Verify deployment
+        run: |
+          echo "✅ Development deployment completed"
+          echo "📍 URL: https://dev-admin.ecovolt.thekloudwiz.com"
+          # Verification disabled until DNS is configured
+          # curl -f https://dev-admin.ecovolt.thekloudwiz.com || exit 1
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging-admin.ecovolt.thekloudwiz.com
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+          role-session-name: GitHubActions-AdminPortal-Staging
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-portal-staging-${{ github.sha }}
+          path: ./build
+      
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./build s3://ecovolt-staging-admin-portal/ --delete
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.STAGING_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+      
+      - name: Verify deployment
+        run: |
+          echo "✅ Staging deployment completed"
+          echo "📍 URL: https://staging-admin.ecovolt.thekloudwiz.com"
+          # Verification disabled until DNS is configured
+          # curl -f https://staging-admin.ecovolt.thekloudwiz.com || exit 1
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.AWS_ROLE_ARN_PROD != ''
+    environment:
+      name: production
+      url: https://admin.ecovolt.thekloudwiz.com
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          role-session-name: GitHubActions-AdminPortal-Prod
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-portal-prod-${{ github.sha }}
+          path: ./build
+      
+      - name: Create backup of current deployment
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          aws s3 sync s3://ecovolt-prod-admin-portal/ \
+            s3://ecovolt-admin-portal-backups/$TIMESTAMP/ \
+            --quiet
+      
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./build s3://ecovolt-prod-admin-portal/ --delete
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.PROD_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          
+          echo "Waiting for CloudFront invalidation to complete..."
+          aws cloudfront wait invalidation-completed \
+            --distribution-id ${{ secrets.PROD_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --id $INVALIDATION_ID
+      
+      - name: Verify deployment
+        run: |
+          echo "✅ Production deployment completed"
+          echo "📍 URL: https://admin.ecovolt.thekloudwiz.com"
+          # Verification disabled until DNS is configured
+          # curl -f https://admin.ecovolt.thekloudwiz.com || exit 1
+      
+      - name: Notify deployment
+        if: always()
+        run: |
+          echo "Deployment notification would be sent here"
+
+  rollback-prod:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/main'
+    needs: deploy-prod
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          role-session-name: GitHubActions-AdminPortal-Rollback
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Get latest backup
+        id: get-backup
+        run: |
+          LATEST_BACKUP=$(aws s3 ls s3://ecovolt-admin-portal-backups/ \
+            | sort | tail -n 1 | awk '{print $2}')
+          echo "backup=$LATEST_BACKUP" >> $GITHUB_OUTPUT
+      
+      - name: Restore from backup
+        run: |
+          aws s3 sync s3://ecovolt-admin-portal-backups/${{ steps.get-backup.outputs.backup }} \
+            s3://ecovolt-prod-admin-portal/ --delete
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.PROD_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+      
+      - name: Notify rollback
+        run: |
+          echo "ROLLBACK: Production rolled back to backup ${{ steps.get-backup.outputs.backup }}"

@@ -1,0 +1,36 @@
+name: Admin Portal Production Environment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'application/admin-portal/**'
+      - '.github/workflows/admin-portal-prod.yml'
+      - '.github/workflows/admin-portal-reusable.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'application/admin-portal/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  admin-portal-prod:
+    name: Admin Portal Production
+    uses: ./.github/workflows/admin-portal-reusable.yml
+    with:
+      environment: prod
+      node_version: '18'
+      aws_region: 'eu-central-1'
+      # Deploy on push to main branch, but not on PR
+      run_deploy: ${{ github.event_name == 'push' }}
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_PROD }}
+      s3_bucket: ${{ secrets.ADMIN_PORTAL_S3_BUCKET_PROD }}
+      cloudfront_distribution_id: ${{ secrets.ADMIN_PORTAL_CLOUDFRONT_ID_PROD }}
+      api_url: ${{ secrets.API_URL_PROD }}
+

@@ -1,0 +1,30 @@
+name: Mobile App Dev Environment
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'application/mobile/**'
+      - '.github/workflows/mobile-dev.yml'
+      - '.github/workflows/mobile-reusable.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'application/mobile/**'
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-dev:
+    name: Mobile App Dev
+    uses: ./.github/workflows/mobile-reusable.yml
+    with:
+      environment: dev
+      node_version: '18'
+      java_version: '17'
+      build_android: true
+      build_ios: false  # Set to true if running on macOS runners
+

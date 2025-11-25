@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - '**.tf'
+      - 'infra/**'
+      - 'infra/**'
       - 'modules/**'
       - 'environments/**'
       - '.github/workflows/prod.yml'
@@ -14,7 +15,8 @@ on:
     branches:
       - main
     paths:
-      - '**.tf'
+      - 'infra/**'
+      - 'infra/**'
       - 'modules/**'
       - 'environments/**'
       - '.github/workflows/prod.yml'
@@ -34,6 +36,7 @@ jobs:
       environment: prod
       terraform_version: '1.5'
       aws_region: 'eu-central-1'
+      working_directory: 'infra'
       # Apply only on merge (push), not on PR
       run_apply: ${{ github.event_name == 'push' }}
     secrets:

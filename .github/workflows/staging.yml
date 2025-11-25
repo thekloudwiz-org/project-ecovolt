@@ -5,7 +5,8 @@ on:
     branches:
       - staging
     paths:
-      - '**.tf'
+      - 'infra/**'
+      - 'infra/**'
       - 'modules/**'
       - 'environments/**'
       - '.github/workflows/staging.yml'
@@ -14,7 +15,8 @@ on:
     branches:
       - staging
     paths:
-      - '**.tf'
+      - 'infra/**'
+      - 'infra/**'
       - 'modules/**'
       - 'environments/**'
       - '.github/workflows/staging.yml'
@@ -34,6 +36,7 @@ jobs:
       environment: staging
       terraform_version: '1.5'
       aws_region: 'eu-central-1'
+      working_directory: 'infra'
       # Apply only on merge (push), not on PR
       run_apply: ${{ github.event_name == 'push' }}
     secrets:

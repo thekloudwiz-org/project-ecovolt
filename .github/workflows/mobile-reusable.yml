@@ -1,0 +1,177 @@
+name: Mobile App Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, staging, prod)'
+        required: true
+        type: string
+      node_version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '18'
+      java_version:
+        description: 'Java version for Android'
+        required: false
+        type: string
+        default: '17'
+      build_android:
+        description: 'Whether to build Android'
+        required: false
+        type: boolean
+        default: true
+      build_ios:
+        description: 'Whether to build iOS'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+          cache-dependency-path: application/mobile/EcoVolt/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd application/mobile/EcoVolt
+          npm ci
+      
+      - name: Run linter
+        run: |
+          cd application/mobile/EcoVolt
+          npm run lint || echo "⚠️  Linter not configured, skipping"
+      
+      - name: Run type check
+        run: |
+          cd application/mobile/EcoVolt
+          npm run type-check || echo "⚠️  Type check not configured, skipping"
+      
+      - name: Run unit tests
+        run: |
+          cd application/mobile/EcoVolt
+          npm test -- --coverage --watchAll=false || echo "⚠️  Tests not configured, skipping"
+      
+      - name: Upload coverage
+        if: hashFiles('application/mobile/EcoVolt/coverage/coverage-final.json') != ''
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./application/mobile/EcoVolt/coverage/coverage-final.json
+          flags: mobile
+          name: mobile-coverage
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: test
+    if: inputs.build_android && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: 'temurin'
+      
+      - name: Install dependencies
+        run: |
+          cd application/mobile/EcoVolt
+          npm ci
+      
+      - name: Build Android APK
+        run: |
+          cd application/mobile/EcoVolt/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ inputs.environment }}-${{ github.sha }}
+          path: application/mobile/EcoVolt/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+      
+      - name: Build summary
+        run: |
+          echo "✅ Android APK built successfully for ${{ inputs.environment }}"
+          echo "📦 Artifact: android-apk-${{ inputs.environment }}-${{ github.sha }}"
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: test
+    if: inputs.build_ios && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+      
+      - name: Install dependencies
+        run: |
+          cd application/mobile/EcoVolt
+          npm ci
+      
+      - name: Install CocoaPods
+        run: |
+          cd application/mobile/EcoVolt/ios
+          pod install
+      
+      - name: Build iOS
+        run: |
+          cd application/mobile/EcoVolt/ios
+          xcodebuild -workspace EcoVolt.xcworkspace \
+            -scheme EcoVolt \
+            -configuration Release \
+            -archivePath build/EcoVolt.xcarchive \
+            archive
+      
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-${{ inputs.environment }}-${{ github.sha }}
+          path: application/mobile/EcoVolt/ios/build/EcoVolt.xcarchive
+          retention-days: 30
+      
+      - name: Build summary
+        run: |
+          echo "✅ iOS build completed successfully for ${{ inputs.environment }}"
+          echo "📦 Artifact: ios-build-${{ inputs.environment }}-${{ github.sha }}"
+
+  # Future: Add deployment jobs here when ready
+  # deploy-firebase:
+  #   name: Deploy to Firebase App Distribution
+  #   runs-on: ubuntu-latest
+  #   needs: build-android
+  #   if: inputs.environment == 'dev'
+  #   steps:
+  #     - name: Deploy to Firebase
+  #       run: echo "Firebase deployment would happen here"
+

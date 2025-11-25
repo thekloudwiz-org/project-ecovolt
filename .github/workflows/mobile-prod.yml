@@ -1,0 +1,30 @@
+name: Mobile App Production Environment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'application/mobile/**'
+      - '.github/workflows/mobile-prod.yml'
+      - '.github/workflows/mobile-reusable.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'application/mobile/**'
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-prod:
+    name: Mobile App Production
+    uses: ./.github/workflows/mobile-reusable.yml
+    with:
+      environment: prod
+      node_version: '18'
+      java_version: '17'
+      build_android: true
+      build_ios: false  # Set to true if running on macOS runners
+

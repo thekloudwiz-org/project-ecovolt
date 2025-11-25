@@ -1,0 +1,36 @@
+name: Admin Portal Staging Environment
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'application/admin-portal/**'
+      - '.github/workflows/admin-portal-staging.yml'
+      - '.github/workflows/admin-portal-reusable.yml'
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'application/admin-portal/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  admin-portal-staging:
+    name: Admin Portal Staging
+    uses: ./.github/workflows/admin-portal-reusable.yml
+    with:
+      environment: staging
+      node_version: '18'
+      aws_region: 'eu-central-1'
+      # Deploy on push to staging branch, but not on PR
+      run_deploy: ${{ github.event_name == 'push' }}
+    secrets:
+      aws_role_arn: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+      s3_bucket: ${{ secrets.ADMIN_PORTAL_S3_BUCKET_STAGING }}
+      cloudfront_distribution_id: ${{ secrets.ADMIN_PORTAL_CLOUDFRONT_ID_STAGING }}
+      api_url: ${{ secrets.API_URL_STAGING }}
+

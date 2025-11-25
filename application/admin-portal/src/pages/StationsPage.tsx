@@ -1,0 +1,213 @@
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getStations, createStation, updateStation, deleteStation } from '../services/api'
+import type { Station } from '../types'
+import './StationsPage.css'
+
+export default function StationsPage() {
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [showModal, setShowModal] = useState(false)
+  const [editingStation, setEditingStation] = useState<Station | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['stations', page],
+    queryFn: () => getStations(page, 20),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: createStation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stations'] })
+      setShowModal(false)
+      setEditingStation(null)
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Station> }) => updateStation(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stations'] })
+      setShowModal(false)
+      setEditingStation(null)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteStation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stations'] })
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const data = {
+      name: formData.get('name') as string,
+      address: formData.get('address') as string,
+      city: formData.get('city') as string,
+      latitude: parseFloat(formData.get('latitude') as string),
+      longitude: parseFloat(formData.get('longitude') as string),
+      capacity: parseInt(formData.get('capacity') as string),
+      swapCost: parseFloat(formData.get('swapCost') as string),
+      operatingHours: formData.get('operatingHours') as string,
+      status: formData.get('status') as 'active' | 'inactive' | 'maintenance',
+    }
+
+    if (editingStation) {
+      updateMutation.mutate({ id: editingStation.id, data })
+    } else {
+      createMutation.mutate(data)
+    }
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this station?')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
+  const filteredStations = data?.data.filter((station) =>
+    station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    station.city.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || []
+
+  return (
+    <div className="stations-page">
+      <div className="page-header">
+        <h1 className="page-title">Station Management</h1>
+        <button className="btn-primary" onClick={() => { setEditingStation(null); setShowModal(true) }}>
+          + Add Station
+        </button>
+      </div>
+
+      <div className="search-bar">
+        <input
+          type="text"
+          placeholder="Search stations..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="loading">Loading stations...</div>
+      ) : (
+        <>
+          <div className="table-card">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>City</th>
+                  <th>Capacity</th>
+                  <th>Available</th>
+                  <th>Cost</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStations.map((station) => (
+                  <tr key={station.id}>
+                    <td>{station.name}</td>
+                    <td>{station.city}</td>
+                    <td>{station.capacity}</td>
+                    <td>{station.availableBatteries}</td>
+                    <td>GHS {station.swapCost}</td>
+                    <td>
+                      <span className={`status-badge status-${station.status}`}>
+                        {station.status}
+                      </span>
+                    </td>
+                    <td>
+                      <button className="btn-icon" onClick={() => { setEditingStation(station); setShowModal(true) }}>
+                        ✏️
+                      </button>
+                      <button className="btn-icon" onClick={() => handleDelete(station.id)}>
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pagination">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+              Previous
+            </button>
+            <span>Page {page} of {data?.totalPages || 1}</span>
+            <button onClick={() => setPage(p => p + 1)} disabled={page >= (data?.totalPages || 1)}>
+              Next
+            </button>
+          </div>
+        </>
+      )}
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>{editingStation ? 'Edit Station' : 'Add Station'}</h2>
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Name</label>
+                  <input name="name" defaultValue={editingStation?.name} required />
+                </div>
+                <div className="form-group">
+                  <label>City</label>
+                  <input name="city" defaultValue={editingStation?.city} required />
+                </div>
+                <div className="form-group">
+                  <label>Address</label>
+                  <input name="address" defaultValue={editingStation?.address} required />
+                </div>
+                <div className="form-group">
+                  <label>Latitude</label>
+                  <input name="latitude" type="number" step="0.000001" defaultValue={editingStation?.latitude} required />
+                </div>
+                <div className="form-group">
+                  <label>Longitude</label>
+                  <input name="longitude" type="number" step="0.000001" defaultValue={editingStation?.longitude} required />
+                </div>
+                <div className="form-group">
+                  <label>Capacity</label>
+                  <input name="capacity" type="number" defaultValue={editingStation?.capacity} required />
+                </div>
+                <div className="form-group">
+                  <label>Swap Cost (GHS)</label>
+                  <input name="swapCost" type="number" step="0.01" defaultValue={editingStation?.swapCost} required />
+                </div>
+                <div className="form-group">
+                  <label>Operating Hours</label>
+                  <input name="operatingHours" defaultValue={editingStation?.operatingHours || '24/7'} required />
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select name="status" defaultValue={editingStation?.status || 'active'}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  {editingStation ? 'Update' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

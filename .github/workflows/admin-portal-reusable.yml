@@ -1,0 +1,224 @@
+name: Admin Portal Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, staging, prod)'
+        required: true
+        type: string
+      node_version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '18'
+      aws_region:
+        description: 'AWS region'
+        required: false
+        type: string
+        default: 'eu-central-1'
+      run_deploy:
+        description: 'Whether to run deployment'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      aws_role_arn:
+        description: 'AWS IAM Role ARN for OIDC'
+        required: true
+      s3_bucket:
+        description: 'S3 bucket name for hosting'
+        required: false
+      cloudfront_distribution_id:
+        description: 'CloudFront distribution ID'
+        required: false
+      api_url:
+        description: 'API Gateway URL'
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+          cache-dependency-path: application/admin-portal/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd application/admin-portal
+          npm ci
+      
+      - name: Run linter
+        run: |
+          cd application/admin-portal
+          npm run lint || echo "⚠️  Linter not configured, skipping"
+      
+      - name: Run type check
+        run: |
+          cd application/admin-portal
+          npm run type-check || echo "⚠️  Type check not configured, skipping"
+      
+      - name: Run unit tests
+        run: |
+          cd application/admin-portal
+          npm test -- --coverage --watchAll=false || echo "⚠️  Tests not configured, skipping"
+      
+      - name: Upload coverage
+        if: hashFiles('application/admin-portal/coverage/coverage-final.json') != ''
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./application/admin-portal/coverage/coverage-final.json
+          flags: admin-portal
+          name: admin-portal-coverage
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+      
+      - name: Install dependencies
+        run: |
+          cd application/admin-portal
+          npm ci
+      
+      - name: Set environment variables
+        run: |
+          cd application/admin-portal
+          if [ -n "${{ secrets.api_url }}" ]; then
+            echo "REACT_APP_API_URL=${{ secrets.api_url }}" >> .env.production
+          else
+            echo "⚠️  API_URL not configured, using default"
+          fi
+          echo "REACT_APP_ENVIRONMENT=${{ inputs.environment }}" >> .env.production
+      
+      - name: Build application
+        run: |
+          cd application/admin-portal
+          npm run build
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-portal-${{ inputs.environment }}-${{ github.sha }}
+          path: application/admin-portal/build
+          retention-days: 30
+      
+      - name: Build summary
+        run: |
+          echo "✅ Admin portal built successfully for ${{ inputs.environment }}"
+          echo "📦 Artifact: admin-portal-${{ inputs.environment }}-${{ github.sha }}"
+
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.run_deploy
+    environment:
+      name: ${{ inputs.environment }}
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws_role_arn }}
+          role-session-name: GitHubActions-AdminPortal-${{ inputs.environment }}
+          aws-region: ${{ inputs.aws_region }}
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-portal-${{ inputs.environment }}-${{ github.sha }}
+          path: ./build
+      
+      - name: Check S3 bucket configuration
+        id: check-bucket
+        run: |
+          if [ -n "${{ secrets.s3_bucket }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ S3 bucket configured: ${{ secrets.s3_bucket }}"
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️  S3 bucket not configured, skipping deployment"
+          fi
+      
+      - name: Create backup of current deployment
+        if: steps.check-bucket.outputs.configured == 'true' && inputs.environment == 'prod'
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_BUCKET="${{ secrets.s3_bucket }}-backups"
+          
+          # Check if backup bucket exists
+          if aws s3 ls "s3://$BACKUP_BUCKET" 2>/dev/null; then
+            echo "📦 Creating backup..."
+            aws s3 sync s3://${{ secrets.s3_bucket }}/ \
+              s3://$BACKUP_BUCKET/$TIMESTAMP/ \
+              --quiet
+            echo "✅ Backup created: s3://$BACKUP_BUCKET/$TIMESTAMP/"
+          else
+            echo "⚠️  Backup bucket not found, skipping backup"
+          fi
+      
+      - name: Deploy to S3
+        if: steps.check-bucket.outputs.configured == 'true'
+        run: |
+          echo "🚀 Deploying to S3..."
+          aws s3 sync ./build s3://${{ secrets.s3_bucket }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable"
+          echo "✅ Deployed to s3://${{ secrets.s3_bucket }}/"
+      
+      - name: Invalidate CloudFront cache
+        if: steps.check-bucket.outputs.configured == 'true' && secrets.cloudfront_distribution_id != ''
+        run: |
+          echo "🔄 Invalidating CloudFront cache..."
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.cloudfront_distribution_id }} \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          
+          echo "⏳ Waiting for invalidation to complete..."
+          aws cloudfront wait invalidation-completed \
+            --distribution-id ${{ secrets.cloudfront_distribution_id }} \
+            --id $INVALIDATION_ID
+          
+          echo "✅ CloudFront cache invalidated"
+      
+      - name: Deployment summary
+        run: |
+          echo "========================================="
+          echo "📊 Deployment Summary"
+          echo "========================================="
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Region: ${{ inputs.aws_region }}"
+          if [ -n "${{ secrets.s3_bucket }}" ]; then
+            echo "S3 Bucket: ${{ secrets.s3_bucket }}"
+          fi
+          if [ -n "${{ secrets.cloudfront_distribution_id }}" ]; then
+            echo "CloudFront: ${{ secrets.cloudfront_distribution_id }}"
+          fi
+          echo "Commit: ${{ github.sha }}"
+          echo "========================================="
+

@@ -17,6 +17,11 @@ on:
         required: false
         type: string
         default: 'eu-central-1'
+      working_directory:
+        description: 'Working directory for Terraform files'
+        required: false
+        type: string
+        default: 'infra'
       run_apply:
         description: 'Whether to run terraform apply'
         required: false
@@ -71,6 +76,7 @@ jobs:
 
       - name: Terraform Init
         run: |
+          cd ${{ inputs.working_directory }}
           terraform init \
             -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
 
@@ -97,16 +103,22 @@ jobs:
           key: ${{ needs.terraform-init.outputs.cache-key }}
 
       - name: Terraform Init
-        run: terraform init -backend=false
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform init -backend=false
 
       - name: Terraform Format Check
         id: fmt
-        run: terraform fmt -check -recursive
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform fmt -check -recursive
         continue-on-error: true
 
       - name: Terraform Validate
         id: validate
-        run: terraform validate
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform validate
 
       - name: Comment Format Results on PR
         if: github.event_name == 'pull_request' && steps.fmt.outcome == 'failure'
@@ -132,6 +144,7 @@ jobs:
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
+          working_directory: ${{ inputs.working_directory }}
           soft_fail: true
           format: sarif
           sarif_file: tfsec-results.sarif
@@ -148,7 +161,7 @@ jobs:
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@master
         with:
-          directory: .
+          directory: ${{ inputs.working_directory }}
           framework: terraform
           soft_fail: true
           output_format: cli
@@ -184,12 +197,14 @@ jobs:
 
       - name: Terraform Init
         run: |
+          cd ${{ inputs.working_directory }}
           terraform init \
             -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
 
       - name: Terraform Plan
         id: plan
         run: |
+          cd ${{ inputs.working_directory }}
           terraform plan \
             -var-file=environments/${{ inputs.environment }}.tfvars \
             -out=${{ inputs.environment }}.tfplan \
@@ -201,8 +216,8 @@ jobs:
         with:
           name: tfplan-${{ inputs.environment }}
           path: |
-            ${{ inputs.environment }}.tfplan
-            plan-output.txt
+            ${{ inputs.working_directory }}/${{ inputs.environment }}.tfplan
+            ${{ inputs.working_directory }}/plan-output.txt
           retention-days: 5
 
       - name: Comment Plan on PR
@@ -211,7 +226,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const plan = fs.readFileSync('plan-output.txt', 'utf8');
+            const plan = fs.readFileSync('${{ inputs.working_directory }}/plan-output.txt', 'utf8');
             const truncatedPlan = plan.length > 65000 ? plan.substring(0, 65000) + '\n\n... (truncated)' : plan;
             
             const output = `#### Terraform Plan for \`${{ inputs.environment }}\` 📖
@@ -268,6 +283,7 @@ jobs:
 
       - name: Terraform Init
         run: |
+          cd ${{ inputs.working_directory }}
           terraform init \
             -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state" \
             -reconfigure
@@ -275,6 +291,7 @@ jobs:
       - name: Verify Plan is Still Valid
         id: verify
         run: |
+          cd ${{ inputs.working_directory }}
           # Check if the plan file is compatible with current state
           terraform show ${{ inputs.environment }}.tfplan > /dev/null 2>&1
           if [ $? -ne 0 ]; then
@@ -288,7 +305,15 @@ jobs:
 
       - name: Terraform Apply
         if: steps.verify.outputs.valid == 'true'
-        run: terraform apply -auto-approve ${{ inputs.environment }}.tfplan
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform apply -auto-approve ${{ inputs.environment }}.tfplan
+      
+      - name: Terraform Output
+        id: output
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform output -json > outputs.json
 
       - name: Comment on Invalid Plan
         if: steps.verify.outputs.valid == 'false' && github.event_name == 'pull_request'
@@ -310,7 +335,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs-${{ inputs.environment }}
-          path: outputs.json
+          path: ${{ inputs.working_directory }}/outputs.json
           retention-days: 30
 
       - name: Comment Apply Success on PR
