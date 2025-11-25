@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import './LoginPage.css'
 
 export default function LoginPage() {
   const { login } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,7 +18,10 @@ export default function LoginPage() {
 
     const result = await login(email, password)
     
-    if (!result.success) {
+    if (result.success) {
+      // Redirect to dashboard after successful login
+      navigate('/dashboard')
+    } else {
       setError(result.error || 'Login failed')
     }
     

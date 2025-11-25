@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import './DashboardLayout.css'
 
@@ -10,6 +10,12 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '' },
@@ -51,7 +57,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <p className="user-role">Administrator</p>
             </div>
           </div>
-          <button onClick={logout} className="logout-button">
+          <button onClick={handleLogout} className="logout-button">
             Logout
           </button>
         </div>
