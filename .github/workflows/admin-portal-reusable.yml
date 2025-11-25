@@ -189,8 +189,20 @@ jobs:
             --cache-control "public, max-age=31536000, immutable"
           echo "✅ Deployed to s3://${{ secrets.s3_bucket }}/"
       
+      - name: Check CloudFront configuration
+        id: check-cloudfront
+        if: steps.check-bucket.outputs.configured == 'true'
+        run: |
+          if [ -n "${{ secrets.cloudfront_distribution_id }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ CloudFront configured: ${{ secrets.cloudfront_distribution_id }}"
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️  CloudFront not configured, skipping cache invalidation"
+          fi
+      
       - name: Invalidate CloudFront cache
-        if: steps.check-bucket.outputs.configured == 'true' && secrets.cloudfront_distribution_id != ''
+        if: steps.check-cloudfront.outputs.configured == 'true'
         run: |
           echo "🔄 Invalidating CloudFront cache..."
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
