@@ -12,11 +12,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation()
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/stations', label: 'Stations', icon: '🏪' },
-    { path: '/bikes', label: 'Bikes', icon: '🏍️' },
-    { path: '/users', label: 'Users', icon: '👥' },
-    { path: '/analytics', label: 'Analytics', icon: '📈' },
+    { path: '/dashboard', label: 'Dashboard', icon: '' },
+    { path: '/stations', label: 'Stations', icon: '' },
+    { path: '/bikes', label: 'Bikes', icon: '' },
+    { path: '/users', label: 'Users', icon: '' },
+    { path: '/analytics', label: 'Analytics', icon: '' },
   ]
 
   return (
@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1 className="sidebar-logo">⚡ EcoVolt</h1>
+          <h1 className="sidebar-logo">EcoVolt</h1>
           <p className="sidebar-subtitle">Admin Portal</p>
         </div>
 

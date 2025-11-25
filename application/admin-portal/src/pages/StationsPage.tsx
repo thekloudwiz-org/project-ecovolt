@@ -125,10 +125,10 @@ export default function StationsPage() {
                     </td>
                     <td>
                       <button className="btn-icon" onClick={() => { setEditingStation(station); setShowModal(true) }}>
-                        ✏️
+                        Edit
                       </button>
                       <button className="btn-icon" onClick={() => handleDelete(station.id)}>
-                        🗑️
+                        Delete
                       </button>
                     </td>
                   </tr>

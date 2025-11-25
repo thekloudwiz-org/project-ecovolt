@@ -27,7 +27,7 @@ export default function LoginPage() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1 className="login-logo">⚡ EcoVolt</h1>
+          <h1 className="login-logo">EcoVolt</h1>
           <h2 className="login-title">Admin Portal</h2>
           <p className="login-subtitle">Sign in to manage your operations</p>
         </div>

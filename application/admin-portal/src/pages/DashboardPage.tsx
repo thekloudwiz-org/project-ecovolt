@@ -20,7 +20,7 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="kpi-grid">
         <div className="kpi-card">
-          <div className="kpi-icon" style={{ backgroundColor: '#e3f2fd' }}>⚡</div>
+          <div className="kpi-icon" style={{ backgroundColor: '#e3f2fd' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Swaps Today</p>
             <p className="kpi-value">{metrics?.totalSwapsToday || 0}</p>
@@ -28,7 +28,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="kpi-card">
-          <div className="kpi-icon" style={{ backgroundColor: '#e8f5e9' }}>💰</div>
+          <div className="kpi-icon" style={{ backgroundColor: '#e8f5e9' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Revenue Today</p>
             <p className="kpi-value">GHS {metrics?.totalRevenueToday.toFixed(2) || '0.00'}</p>
@@ -36,7 +36,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="kpi-card">
-          <div className="kpi-icon" style={{ backgroundColor: '#fff3e0' }}>👥</div>
+          <div className="kpi-icon" style={{ backgroundColor: '#fff3e0' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Active Riders</p>
             <p className="kpi-value">{metrics?.activeRiders || 0}</p>
@@ -44,7 +44,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="kpi-card">
-          <div className="kpi-icon" style={{ backgroundColor: '#fce4ec' }}>🏪</div>
+          <div className="kpi-icon" style={{ backgroundColor: '#fce4ec' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Total Stations</p>
             <p className="kpi-value">{metrics?.totalStations || 0}</p>
