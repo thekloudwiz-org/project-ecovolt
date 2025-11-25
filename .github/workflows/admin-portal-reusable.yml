@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: admin-portal-${{ inputs.environment }}-${{ github.sha }}
-          path: application/admin-portal/build
+          path: application/admin-portal/dist
           retention-days: 30
       
       - name: Build summary
