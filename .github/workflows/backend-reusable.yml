@@ -178,8 +178,9 @@ jobs:
           # Note: stream_processor and data_transformer are in the analytics module
           # and have their own deployment process
           declare -A FUNCTIONS
-          FUNCTIONS["API Handler"]="${{ secrets.api_handler_lambda }}"
-          FUNCTIONS["IoT Processor"]="${{ secrets.iot_processor_lambda }}"
+          FUNCTIONS["Auth Handler"]="ecovolt-${{ inputs.environment }}-auth-handler"
+          FUNCTIONS["API Handler"]="ecovolt-${{ inputs.environment }}-api-handler"
+          FUNCTIONS["IoT Processor"]="ecovolt-${{ inputs.environment }}-iot-processor"
           FUNCTIONS["DB Migrator"]="ecovolt-${{ inputs.environment }}-db-migrator"
           
           UPDATED=0

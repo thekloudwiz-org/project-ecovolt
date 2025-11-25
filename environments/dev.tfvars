@@ -5,6 +5,8 @@ aws_region  = "eu-central-1"
 dr_region   = "eu-west-1"
 
 # Networking - Minimal for dev
+# NAT Gateway disabled - Lambda architecture restructured
+# Auth Lambda outside VPC, Business Lambda inside VPC
 enable_nat_gateway = false
 enable_vpn_gateway = false
 

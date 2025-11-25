@@ -82,18 +82,20 @@ resource "aws_vpc_endpoint" "dynamodb" {
 }
 
 # Cognito Identity Provider VPC Endpoint (Interface)
-resource "aws_vpc_endpoint" "cognito_idp" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${data.aws_region.current.name}.cognito-idp"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${local.name_prefix}-cognito-idp-endpoint"
-    }
-  )
-}
+# DISABLED: Cognito User Pools with ManagedLogin don't support PrivateLink
+# Lambda will use NAT Gateway to access Cognito over public internet
+# resource "aws_vpc_endpoint" "cognito_idp" {
+#   vpc_id              = aws_vpc.main.id
+#   service_name        = "com.amazonaws.${data.aws_region.current.name}.cognito-idp"
+#   vpc_endpoint_type   = "Interface"
+#   subnet_ids          = aws_subnet.private[*].id
+#   security_group_ids  = [aws_security_group.vpc_endpoints.id]
+#   private_dns_enabled = true
+#
+#   tags = merge(
+#     local.common_tags,
+#     {
+#       Name = "${local.name_prefix}-cognito-idp-endpoint"
+#     }
+#   )
+# }

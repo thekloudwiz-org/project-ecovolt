@@ -132,7 +132,8 @@ output "dynamodb_endpoint_id" {
   value       = aws_vpc_endpoint.dynamodb.id
 }
 
-output "cognito_idp_endpoint_id" {
-  description = "Cognito Identity Provider VPC endpoint ID"
-  value       = aws_vpc_endpoint.cognito_idp.id
-}
+# Cognito VPC endpoint disabled - ManagedLogin doesn't support PrivateLink
+# output "cognito_idp_endpoint_id" {
+#   description = "Cognito Identity Provider VPC endpoint ID"
+#   value       = aws_vpc_endpoint.cognito_idp.id
+# }

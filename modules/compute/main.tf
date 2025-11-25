@@ -326,9 +326,12 @@ resource "aws_lambda_function" "api_handler" {
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
 
-  # No VPC configuration - runs outside VPC to access Cognito
-  # Cognito User Pools with ManagedLogin don't support VPC endpoints
-  # Database operations use DynamoDB (public service) instead of RDS
+  # VPC configuration - Business Lambda inside VPC for database access
+  # Handles business logic: stations, swaps, bikes, wallet operations
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [aws_security_group.lambda.id]
+  }
 
   # Environment variables
   environment {
@@ -783,6 +786,12 @@ resource "aws_api_gateway_deployment" "main" {
 
   triggers = {
     redeployment = sha1(jsonencode([
+      # Auth routes
+      aws_api_gateway_resource.auth.id,
+      aws_api_gateway_resource.auth_proxy.id,
+      aws_api_gateway_method.auth_proxy_post.id,
+      aws_api_gateway_integration.auth_proxy_post.id,
+      # Business routes
       aws_api_gateway_resource.proxy.id,
       aws_api_gateway_method.proxy_get.id,
       aws_api_gateway_method.proxy_post.id,

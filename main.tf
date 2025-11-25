@@ -146,7 +146,7 @@ module "compute" {
   vpc_id                 = module.networking.vpc_id
   private_subnet_ids     = module.networking.private_subnet_ids
   
-  db_endpoint            = module.database.db_endpoint
+  db_endpoint            = module.database.db_address  # Use address (hostname only) instead of endpoint (hostname:port)
   db_name                = module.database.db_name
   db_security_group_id   = module.database.db_security_group_id
   db_secret_arn          = module.database.db_secret_arn
