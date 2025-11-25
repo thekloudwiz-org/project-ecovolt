@@ -7,6 +7,7 @@ import json
 from typing import Dict, Any
 from utils.db import get_db_connection, Queries
 from utils.validators import validate_coordinates, validate_station_data
+from utils.json_encoder import json_dumps
 
 
 def list_stations(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -22,7 +23,7 @@ def list_stations(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         return {
             'statusCode': 200,
-            'body': json.dumps({
+            'body': json_dumps({
                 'stations': [dict(station) for station in stations],
                 'count': len(stations)
             })
