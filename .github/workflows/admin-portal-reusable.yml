@@ -57,7 +57,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd application/admin-portal
-          npm ci
+          npm install
       
       - name: Run linter
         run: |
@@ -99,7 +99,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd application/admin-portal
-          npm ci
+          npm install
       
       - name: Set environment variables
         run: |
