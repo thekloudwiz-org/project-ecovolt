@@ -44,8 +44,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
-          cache: 'npm'
-          cache-dependency-path: application/mobile/EcoVolt/package-lock.json
       
       - name: Install dependencies
         run: |
