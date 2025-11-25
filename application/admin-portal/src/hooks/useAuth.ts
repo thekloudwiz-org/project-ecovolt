@@ -23,7 +23,7 @@ export function useAuth() {
       
       // Check if user is in admin group
       const groups = (session.tokens?.accessToken?.payload['cognito:groups'] as string[]) || []
-      const isAdmin = groups.includes('admin')
+      const isAdmin = groups.includes('admins')
 
       if (isAdmin) {
         setUser({
