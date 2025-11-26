@@ -25,12 +25,15 @@ const API_NAME = 'EcoVoltAPI'
 async function getAuthHeaders() {
   try {
     const session = await fetchAuthSession()
+    // Use idToken for Cognito User Pool authorizer
     const token = session.tokens?.idToken?.toString()
     if (!token) {
+      console.error('No auth token available. Session:', session)
       throw new Error('No authentication token available')
     }
+    console.log('Auth token retrieved, length:', token.length)
     return {
-      Authorization: `Bearer ${token}`,
+      Authorization: token,
     }
   } catch (error) {
     console.error('Error getting auth headers:', error)
