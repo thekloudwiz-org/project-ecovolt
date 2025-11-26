@@ -19,8 +19,8 @@ export default function LoginPage() {
     const result = await login(email, password)
     
     if (result.success) {
-      // Redirect to dashboard after successful login
-      navigate('/dashboard')
+      // Force a full page reload to ensure auth state is properly updated
+      window.location.href = '/dashboard'
     } else {
       setError(result.error || 'Login failed')
     }
