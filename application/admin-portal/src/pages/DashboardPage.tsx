@@ -23,7 +23,7 @@ export default function DashboardPage() {
           <div className="kpi-icon" style={{ backgroundColor: '#e3f2fd' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Swaps Today</p>
-            <p className="kpi-value">{metrics?.totalSwapsToday || 0}</p>
+            <p className="kpi-value">{metrics?.metrics?.swaps_today || 0}</p>
           </div>
         </div>
 
@@ -31,7 +31,7 @@ export default function DashboardPage() {
           <div className="kpi-icon" style={{ backgroundColor: '#e8f5e9' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Revenue Today</p>
-            <p className="kpi-value">GHS {metrics?.totalRevenueToday.toFixed(2) || '0.00'}</p>
+            <p className="kpi-value">GHS {metrics?.metrics?.revenue_today?.toFixed(2) || '0.00'}</p>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ export default function DashboardPage() {
           <div className="kpi-icon" style={{ backgroundColor: '#fff3e0' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Active Riders</p>
-            <p className="kpi-value">{metrics?.activeRiders || 0}</p>
+            <p className="kpi-value">{metrics?.metrics?.active_riders || 0}</p>
           </div>
         </div>
 
@@ -47,7 +47,7 @@ export default function DashboardPage() {
           <div className="kpi-icon" style={{ backgroundColor: '#fce4ec' }}></div>
           <div className="kpi-content">
             <p className="kpi-label">Total Stations</p>
-            <p className="kpi-value">{metrics?.totalStations || 0}</p>
+            <p className="kpi-value">{metrics?.metrics?.total_stations || 0}</p>
           </div>
         </div>
       </div>
@@ -56,12 +56,12 @@ export default function DashboardPage() {
       <div className="chart-card">
         <h2 className="chart-title">7-Day Swap Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={metrics?.swapTrend || []}>
+          <LineChart data={metrics?.swap_trend_7days || []}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="count" stroke="#2ecc71" strokeWidth={2} />
+            <Line type="monotone" dataKey="swaps" stroke="#2ecc71" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -74,15 +74,13 @@ export default function DashboardPage() {
             <tr>
               <th>Station Name</th>
               <th>Swap Count</th>
-              <th>Revenue</th>
             </tr>
           </thead>
           <tbody>
-            {metrics?.topStations.map((station) => (
-              <tr key={station.id}>
+            {metrics?.top_stations?.map((station) => (
+              <tr key={station.station_id}>
                 <td>{station.name}</td>
-                <td>{station.swapCount}</td>
-                <td>GHS {station.revenue.toFixed(2)}</td>
+                <td>{station.swap_count}</td>
               </tr>
             ))}
           </tbody>

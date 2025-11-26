@@ -4,7 +4,20 @@
  */
 
 import { get, post, put, del } from 'aws-amplify/api'
-import type { DashboardMetrics, Station, Bike, User, Analytics, PaginatedResponse } from '../types'
+import type {
+  DashboardMetrics,
+  Station,
+  StationFormData,
+  Bike,
+  BikeFormData,
+  User,
+  UserDetails,
+  TimeSeriesAnalytics,
+  StationAnalytics,
+  RevenueAnalytics,
+  BatteryAnalytics,
+  PaginatedResponse,
+} from '../types'
 
 const API_NAME = 'EcoVoltAPI'
 
@@ -14,11 +27,12 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
     apiName: API_NAME,
     path: '/admin/dashboard',
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as DashboardMetrics
 }
 
 // Stations
-export const getStations = async (page = 1, pageSize = 20): Promise<PaginatedResponse<Station>> => {
+export const getStations = async (page = 1, pageSize = 20) => {
   const response = await get({
     apiName: API_NAME,
     path: '/admin/stations',
@@ -26,25 +40,28 @@ export const getStations = async (page = 1, pageSize = 20): Promise<PaginatedRes
       queryParams: { page: page.toString(), page_size: pageSize.toString() },
     },
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as { stations: Station[]; pagination: any }
 }
 
-export const createStation = async (data: Partial<Station>): Promise<Station> => {
+export const createStation = async (data: StationFormData): Promise<Station> => {
   const response = await post({
     apiName: API_NAME,
     path: '/admin/stations',
     options: { body: data },
   }).response
-  return ((await response.body.json()) as any).station
+  const result = await response.body.json()
+  return result.station as Station
 }
 
-export const updateStation = async (id: string, data: Partial<Station>): Promise<Station> => {
+export const updateStation = async (id: string, data: Partial<StationFormData>): Promise<Station> => {
   const response = await put({
     apiName: API_NAME,
     path: `/admin/stations/${id}`,
     options: { body: data },
   }).response
-  return ((await response.body.json()) as any).station
+  const result = await response.body.json()
+  return result.station as Station
 }
 
 export const deleteStation = async (id: string): Promise<void> => {
@@ -55,7 +72,7 @@ export const deleteStation = async (id: string): Promise<void> => {
 }
 
 // Bikes
-export const getBikes = async (page = 1, pageSize = 20): Promise<PaginatedResponse<Bike>> => {
+export const getBikes = async (page = 1, pageSize = 20) => {
   const response = await get({
     apiName: API_NAME,
     path: '/admin/bikes',
@@ -63,25 +80,28 @@ export const getBikes = async (page = 1, pageSize = 20): Promise<PaginatedRespon
       queryParams: { page: page.toString(), page_size: pageSize.toString() },
     },
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as { bikes: Bike[]; pagination: any }
 }
 
-export const createBike = async (data: Partial<Bike>): Promise<Bike> => {
+export const createBike = async (data: BikeFormData): Promise<Bike> => {
   const response = await post({
     apiName: API_NAME,
     path: '/admin/bikes',
     options: { body: data },
   }).response
-  return ((await response.body.json()) as any).bike
+  const result = await response.body.json()
+  return result.bike as Bike
 }
 
-export const updateBike = async (id: string, data: Partial<Bike>): Promise<Bike> => {
+export const updateBike = async (id: string, data: Partial<BikeFormData>): Promise<Bike> => {
   const response = await put({
     apiName: API_NAME,
     path: `/admin/bikes/${id}`,
     options: { body: data },
   }).response
-  return ((await response.body.json()) as any).bike
+  const result = await response.body.json()
+  return result.bike as Bike
 }
 
 export const assignBike = async (id: string, userId: string): Promise<Bike> => {
@@ -90,11 +110,12 @@ export const assignBike = async (id: string, userId: string): Promise<Bike> => {
     path: `/admin/bikes/${id}/assign`,
     options: { body: { user_id: userId } },
   }).response
-  return ((await response.body.json()) as any).bike
+  const result = await response.body.json()
+  return result.bike as Bike
 }
 
 // Users
-export const getUsers = async (page = 1, pageSize = 20): Promise<PaginatedResponse<User>> => {
+export const getUsers = async (page = 1, pageSize = 20) => {
   const response = await get({
     apiName: API_NAME,
     path: '/admin/users',
@@ -102,31 +123,33 @@ export const getUsers = async (page = 1, pageSize = 20): Promise<PaginatedRespon
       queryParams: { page: page.toString(), page_size: pageSize.toString() },
     },
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as { users: User[]; pagination: any }
 }
 
-export const getUser = async (id: string): Promise<User> => {
+export const getUser = async (id: string): Promise<UserDetails> => {
   const response = await get({
     apiName: API_NAME,
     path: `/admin/users/${id}`,
   }).response
-  return ((await response.body.json()) as any).user
+  const data = await response.body.json()
+  return data as UserDetails
 }
 
 export const adjustWalletBalance = async (
   userId: string,
-  amount: number,
+  adjustment: number,
   reason: string
 ): Promise<void> => {
   await put({
     apiName: API_NAME,
     path: `/admin/users/${userId}/wallet`,
-    options: { body: { amount, reason } },
+    options: { body: { adjustment, reason } },
   }).response
 }
 
 // Analytics
-export const getAnalytics = async (startDate: string, endDate: string): Promise<Analytics> => {
+export const getAnalytics = async (startDate: string, endDate: string): Promise<TimeSeriesAnalytics> => {
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics',
@@ -134,10 +157,11 @@ export const getAnalytics = async (startDate: string, endDate: string): Promise<
       queryParams: { start_date: startDate, end_date: endDate },
     },
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as TimeSeriesAnalytics
 }
 
-export const getStationAnalytics = async (startDate: string, endDate: string) => {
+export const getStationAnalytics = async (startDate: string, endDate: string): Promise<StationAnalytics> => {
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics/stations',
@@ -145,10 +169,11 @@ export const getStationAnalytics = async (startDate: string, endDate: string) =>
       queryParams: { start_date: startDate, end_date: endDate },
     },
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as StationAnalytics
 }
 
-export const getRevenueAnalytics = async (startDate: string, endDate: string) => {
+export const getRevenueAnalytics = async (startDate: string, endDate: string): Promise<RevenueAnalytics> => {
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics/revenue',
@@ -156,5 +181,15 @@ export const getRevenueAnalytics = async (startDate: string, endDate: string) =>
       queryParams: { start_date: startDate, end_date: endDate },
     },
   }).response
-  return (await response.body.json()) as any
+  const data = await response.body.json()
+  return data as RevenueAnalytics
+}
+
+export const getBatteryAnalytics = async (): Promise<BatteryAnalytics> => {
+  const response = await get({
+    apiName: API_NAME,
+    path: '/admin/analytics/batteries',
+  }).response
+  const data = await response.body.json()
+  return data as BatteryAnalytics
 }
