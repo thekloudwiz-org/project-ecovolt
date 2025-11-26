@@ -324,7 +324,7 @@ resource "aws_lambda_function" "api_handler" {
   source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
   memory_size      = var.lambda_memory_size
-  timeout          = var.lambda_timeout
+  timeout          = 120  # 2 minutes - enough for VPC cold start + DB operations
 
   # VPC configuration - Business Lambda inside VPC for database access
   # Handles business logic: stations, swaps, bikes, wallet operations
