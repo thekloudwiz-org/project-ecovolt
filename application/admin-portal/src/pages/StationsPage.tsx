@@ -50,14 +50,13 @@ export default function StationsPage() {
       city: formData.get('city') as string,
       latitude: parseFloat(formData.get('latitude') as string),
       longitude: parseFloat(formData.get('longitude') as string),
-      capacity: parseInt(formData.get('capacity') as string),
-      swapCost: parseFloat(formData.get('swapCost') as string),
-      operatingHours: formData.get('operatingHours') as string,
+      total_capacity: parseInt(formData.get('capacity') as string),
+      operating_hours: formData.get('operatingHours') as string,
       status: formData.get('status') as 'active' | 'inactive' | 'maintenance',
     }
 
     if (editingStation) {
-      updateMutation.mutate({ id: editingStation.id, data })
+      updateMutation.mutate({ id: editingStation.station_id, data })
     } else {
       createMutation.mutate(data)
     }
@@ -69,7 +68,7 @@ export default function StationsPage() {
     }
   }
 
-  const filteredStations = data?.data.filter((station) =>
+  const filteredStations = data?.stations.filter((station: Station) =>
     station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     station.city.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
@@ -104,20 +103,20 @@ export default function StationsPage() {
                   <th>Name</th>
                   <th>City</th>
                   <th>Capacity</th>
-                  <th>Available</th>
-                  <th>Cost</th>
+                  <th>Address</th>
+                  <th>Operating Hours</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredStations.map((station) => (
-                  <tr key={station.id}>
+                {filteredStations.map((station: Station) => (
+                  <tr key={station.station_id}>
                     <td>{station.name}</td>
                     <td>{station.city}</td>
-                    <td>{station.capacity}</td>
-                    <td>{station.availableBatteries}</td>
-                    <td>GHS {station.swapCost}</td>
+                    <td>{station.total_capacity}</td>
+                    <td>{station.address}</td>
+                    <td>{station.operating_hours || '24/7'}</td>
                     <td>
                       <span className={`status-badge status-${station.status}`}>
                         {station.status}
@@ -127,7 +126,7 @@ export default function StationsPage() {
                       <button className="btn-icon" onClick={() => { setEditingStation(station); setShowModal(true) }}>
                         Edit
                       </button>
-                      <button className="btn-icon" onClick={() => handleDelete(station.id)}>
+                      <button className="btn-icon" onClick={() => handleDelete(station.station_id)}>
                         Delete
                       </button>
                     </td>
@@ -141,8 +140,8 @@ export default function StationsPage() {
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
               Previous
             </button>
-            <span>Page {page} of {data?.totalPages || 1}</span>
-            <button onClick={() => setPage(p => p + 1)} disabled={page >= (data?.totalPages || 1)}>
+            <span>Page {page} of {data?.pagination?.total_pages || 1}</span>
+            <button onClick={() => setPage(p => p + 1)} disabled={page >= (data?.pagination?.total_pages || 1)}>
               Next
             </button>
           </div>
@@ -177,15 +176,11 @@ export default function StationsPage() {
                 </div>
                 <div className="form-group">
                   <label>Capacity</label>
-                  <input name="capacity" type="number" defaultValue={editingStation?.capacity} required />
-                </div>
-                <div className="form-group">
-                  <label>Swap Cost (GHS)</label>
-                  <input name="swapCost" type="number" step="0.01" defaultValue={editingStation?.swapCost} required />
+                  <input name="capacity" type="number" defaultValue={editingStation?.total_capacity} required />
                 </div>
                 <div className="form-group">
                   <label>Operating Hours</label>
-                  <input name="operatingHours" defaultValue={editingStation?.operatingHours || '24/7'} required />
+                  <input name="operatingHours" defaultValue={editingStation?.operating_hours || '24/7'} required />
                 </div>
                 <div className="form-group">
                   <label>Status</label>

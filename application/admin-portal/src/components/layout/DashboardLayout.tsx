@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import './DashboardLayout.css'
 
@@ -10,7 +10,6 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
 
   const handleLogout = async () => {
     await logout()

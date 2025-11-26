@@ -376,7 +376,7 @@ export default function AnalyticsPage() {
                       outerRadius={120}
                       label
                     >
-                      {revenueData.revenue_by_station.slice(0, 5).map((entry, index) => (
+                      {revenueData.revenue_by_station.slice(0, 5).map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -480,7 +480,7 @@ export default function AnalyticsPage() {
                       outerRadius={120}
                       label
                     >
-                      {Object.keys(batteryData.status_distribution).map((key, index) => (
+                      {Object.keys(batteryData.status_distribution).map((_key, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
