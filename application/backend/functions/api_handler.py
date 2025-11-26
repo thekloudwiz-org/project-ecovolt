@@ -199,10 +199,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             event['correlation_id'] = correlation_id
             
             # Ensure user record exists in database (lazy creation)
-            from utils.user_sync import ensure_user_exists
-            db_user = ensure_user_exists(user)
-            if db_user:
-                event['db_user'] = db_user
+            # Temporarily disabled - Lambda outside VPC can't reach RDS
+            # from utils.user_sync import ensure_user_exists
+            # db_user = ensure_user_exists(user)
+            # if db_user:
+            #     event['db_user'] = db_user
+            db_user = None
             
             print(json.dumps({
                 'correlation_id': correlation_id,
@@ -221,7 +223,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 groups = user.get('cognito:groups', [])
                 if isinstance(groups, str):
                     groups = [groups]
-                is_admin = 'admin' in groups or user.get('is_admin', False)
+                is_admin = 'admin' in groups or 'admins' in groups or user.get('is_admin', False)
                 
                 if not is_admin:
                     print(json.dumps({
