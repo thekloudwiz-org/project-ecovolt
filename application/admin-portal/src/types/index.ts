@@ -48,7 +48,7 @@ export interface StationFormData {
   total_capacity: number
   operating_hours?: string
   amenities?: string
-  pricing?: Record<string, any>
+  pricing?: string
 }
 
 // Bike Types
