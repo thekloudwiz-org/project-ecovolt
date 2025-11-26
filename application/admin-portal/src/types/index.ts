@@ -46,7 +46,7 @@ export interface StationFormData {
   latitude: number
   longitude: number
   total_capacity: number
-  operating_hours?: Record<string, any>
+  operating_hours?: string
   amenities?: string[]
   pricing?: Record<string, any>
 }

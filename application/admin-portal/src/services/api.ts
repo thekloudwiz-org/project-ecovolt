@@ -16,7 +16,6 @@ import type {
   StationAnalytics,
   RevenueAnalytics,
   BatteryAnalytics,
-  PaginatedResponse,
 } from '../types'
 
 const API_NAME = 'EcoVoltAPI'
@@ -28,7 +27,7 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
     path: '/admin/dashboard',
   }).response
   const data = await response.body.json()
-  return data as DashboardMetrics
+  return data as unknown as DashboardMetrics
 }
 
 // Stations
@@ -41,27 +40,27 @@ export const getStations = async (page = 1, pageSize = 20) => {
     },
   }).response
   const data = await response.body.json()
-  return data as { stations: Station[]; pagination: any }
+  return data as unknown as { stations: Station[]; pagination: any }
 }
 
 export const createStation = async (data: StationFormData): Promise<Station> => {
   const response = await post({
     apiName: API_NAME,
     path: '/admin/stations',
-    options: { body: data },
+    options: { body: data as any },
   }).response
   const result = await response.body.json()
-  return result.station as Station
+  return (result as any).station as Station
 }
 
 export const updateStation = async (id: string, data: Partial<StationFormData>): Promise<Station> => {
   const response = await put({
     apiName: API_NAME,
     path: `/admin/stations/${id}`,
-    options: { body: data },
+    options: { body: data as any },
   }).response
   const result = await response.body.json()
-  return result.station as Station
+  return (result as any).station as Station
 }
 
 export const deleteStation = async (id: string): Promise<void> => {
@@ -81,37 +80,37 @@ export const getBikes = async (page = 1, pageSize = 20) => {
     },
   }).response
   const data = await response.body.json()
-  return data as { bikes: Bike[]; pagination: any }
+  return data as unknown as { bikes: Bike[]; pagination: any }
 }
 
 export const createBike = async (data: BikeFormData): Promise<Bike> => {
   const response = await post({
     apiName: API_NAME,
     path: '/admin/bikes',
-    options: { body: data },
+    options: { body: data as any },
   }).response
   const result = await response.body.json()
-  return result.bike as Bike
+  return (result as any).bike as Bike
 }
 
 export const updateBike = async (id: string, data: Partial<BikeFormData>): Promise<Bike> => {
   const response = await put({
     apiName: API_NAME,
     path: `/admin/bikes/${id}`,
-    options: { body: data },
+    options: { body: data as any },
   }).response
   const result = await response.body.json()
-  return result.bike as Bike
+  return (result as any).bike as Bike
 }
 
 export const assignBike = async (id: string, userId: string): Promise<Bike> => {
   const response = await put({
     apiName: API_NAME,
     path: `/admin/bikes/${id}/assign`,
-    options: { body: { user_id: userId } },
+    options: { body: { user_id: userId } as any },
   }).response
   const result = await response.body.json()
-  return result.bike as Bike
+  return (result as any).bike as Bike
 }
 
 // Users
@@ -124,7 +123,7 @@ export const getUsers = async (page = 1, pageSize = 20) => {
     },
   }).response
   const data = await response.body.json()
-  return data as { users: User[]; pagination: any }
+  return data as unknown as { users: User[]; pagination: any }
 }
 
 export const getUser = async (id: string): Promise<UserDetails> => {
@@ -133,7 +132,7 @@ export const getUser = async (id: string): Promise<UserDetails> => {
     path: `/admin/users/${id}`,
   }).response
   const data = await response.body.json()
-  return data as UserDetails
+  return data as unknown as UserDetails
 }
 
 export const adjustWalletBalance = async (
@@ -144,7 +143,7 @@ export const adjustWalletBalance = async (
   await put({
     apiName: API_NAME,
     path: `/admin/users/${userId}/wallet`,
-    options: { body: { adjustment, reason } },
+    options: { body: { adjustment, reason } as any },
   }).response
 }
 
@@ -158,7 +157,7 @@ export const getAnalytics = async (startDate: string, endDate: string): Promise<
     },
   }).response
   const data = await response.body.json()
-  return data as TimeSeriesAnalytics
+  return data as unknown as TimeSeriesAnalytics
 }
 
 export const getStationAnalytics = async (startDate: string, endDate: string): Promise<StationAnalytics> => {
@@ -170,7 +169,7 @@ export const getStationAnalytics = async (startDate: string, endDate: string): P
     },
   }).response
   const data = await response.body.json()
-  return data as StationAnalytics
+  return data as unknown as StationAnalytics
 }
 
 export const getRevenueAnalytics = async (startDate: string, endDate: string): Promise<RevenueAnalytics> => {
@@ -182,7 +181,7 @@ export const getRevenueAnalytics = async (startDate: string, endDate: string): P
     },
   }).response
   const data = await response.body.json()
-  return data as RevenueAnalytics
+  return data as unknown as RevenueAnalytics
 }
 
 export const getBatteryAnalytics = async (): Promise<BatteryAnalytics> => {
@@ -191,5 +190,5 @@ export const getBatteryAnalytics = async (): Promise<BatteryAnalytics> => {
     path: '/admin/analytics/batteries',
   }).response
   const data = await response.body.json()
-  return data as BatteryAnalytics
+  return data as unknown as BatteryAnalytics
 }
