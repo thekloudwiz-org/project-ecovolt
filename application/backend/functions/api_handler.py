@@ -218,7 +218,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                route_key.startswith('PUT /admin') or \
                route_key.startswith('DELETE /admin'):
                 # Check if user has admin role
-                groups = user.get('cognito:groups', [])
+                groups = user.get('groups', [])
                 if isinstance(groups, str):
                     groups = [groups]
                 
