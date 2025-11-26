@@ -72,15 +72,20 @@ export const deleteStation = async (id: string): Promise<void> => {
 
 // Bikes
 export const getBikes = async (page = 1, pageSize = 20) => {
-  const response = await get({
-    apiName: API_NAME,
-    path: '/admin/bikes',
-    options: {
-      queryParams: { page: page.toString(), page_size: pageSize.toString() },
-    },
-  }).response
-  const data = await response.body.json()
-  return data as unknown as { bikes: Bike[]; pagination: any }
+  try {
+    const response = await get({
+      apiName: API_NAME,
+      path: '/admin/bikes',
+      options: {
+        queryParams: { page: page.toString(), page_size: pageSize.toString() },
+      },
+    }).response
+    const data = await response.body.json()
+    return data as unknown as { bikes: Bike[]; pagination: any }
+  } catch (error: any) {
+    console.error('getBikes error:', error)
+    throw new Error(error.message || error.response?.body || 'Failed to fetch bikes')
+  }
 }
 
 export const createBike = async (data: BikeFormData): Promise<Bike> => {
@@ -115,15 +120,20 @@ export const assignBike = async (id: string, userId: string): Promise<Bike> => {
 
 // Users
 export const getUsers = async (page = 1, pageSize = 20) => {
-  const response = await get({
-    apiName: API_NAME,
-    path: '/admin/users',
-    options: {
-      queryParams: { page: page.toString(), page_size: pageSize.toString() },
-    },
-  }).response
-  const data = await response.body.json()
-  return data as unknown as { users: User[]; pagination: any }
+  try {
+    const response = await get({
+      apiName: API_NAME,
+      path: '/admin/users',
+      options: {
+        queryParams: { page: page.toString(), page_size: pageSize.toString() },
+      },
+    }).response
+    const data = await response.body.json()
+    return data as unknown as { users: User[]; pagination: any }
+  } catch (error: any) {
+    console.error('getUsers error:', error)
+    throw new Error(error.message || error.response?.body || 'Failed to fetch users')
+  }
 }
 
 export const getUser = async (id: string): Promise<UserDetails> => {

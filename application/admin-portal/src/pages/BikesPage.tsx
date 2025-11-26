@@ -113,7 +113,8 @@ export default function BikesPage() {
   }
 
   if (error) {
-    return <div className="error">Error loading bikes: {(error as Error).message}</div>
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return <div className="error">Error loading bikes: {errorMessage || 'Unknown error occurred'}</div>
   }
 
   return (

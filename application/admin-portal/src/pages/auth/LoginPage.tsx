@@ -17,13 +17,12 @@ export default function LoginPage() {
     const result = await login(email, password)
     
     if (result.success) {
-      // Force a full page reload to ensure auth state is properly updated
-      window.location.href = '/dashboard'
+      // Use replace to avoid back button issues and force a clean reload
+      window.location.replace('/dashboard')
     } else {
       setError(result.error || 'Login failed')
+      setLoading(false)
     }
-    
-    setLoading(false)
   }
 
   return (

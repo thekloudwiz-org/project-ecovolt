@@ -89,7 +89,8 @@ export default function UsersPage() {
   }
 
   if (error) {
-    return <div className="error">Error loading users: {(error as Error).message}</div>
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return <div className="error">Error loading users: {errorMessage || 'Unknown error occurred'}</div>
   }
 
   return (

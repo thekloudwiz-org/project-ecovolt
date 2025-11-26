@@ -13,8 +13,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleLogout = async () => {
     await logout()
-    // Force a full page reload to ensure auth state is properly cleared
-    window.location.href = '/login'
+    // Use replace to avoid back button issues and force a clean reload
+    window.location.replace('/login')
   }
 
   const navItems = [

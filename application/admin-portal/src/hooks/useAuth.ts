@@ -61,11 +61,17 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      await signOut()
+      await signOut({ global: true })
       setUser(null)
       setIsAuthenticated(false)
+      // Clear any cached data
+      sessionStorage.clear()
+      localStorage.removeItem('amplify-auto-sign-in')
     } catch (error) {
       console.error('Logout error:', error)
+      // Even if signOut fails, clear local state
+      setUser(null)
+      setIsAuthenticated(false)
     }
   }
 
