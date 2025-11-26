@@ -19,10 +19,10 @@ def check_admin_role(user: Dict[str, Any]) -> bool:
     Requirements: 8.1, 9.6
     """
     # Check if user has admin role in Cognito groups
-    groups = user.get('cognito:groups', [])
+    groups = user.get('groups', [])
     if isinstance(groups, str):
         groups = [groups]
-    return 'admin' in groups or user.get('is_admin', False)
+    return 'admin' in groups or 'admins' in groups or user.get('is_admin', False)
 
 
 def get_dashboard(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
