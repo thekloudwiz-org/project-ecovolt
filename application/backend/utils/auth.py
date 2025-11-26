@@ -57,12 +57,13 @@ def verify_token(token: str) -> Optional[Dict]:
         print(json.dumps({'event': 'jwt_claims', 'claims': claims}))
         
         # Extract user information
+        groups = claims.get('cognito:groups', [])
         user = {
             'user_id': claims.get('sub'),
             'email': claims.get('email'),
             'username': claims.get('cognito:username'),
-            'groups': claims.get('cognito:groups', []),
-            'is_admin': 'Admins' in claims.get('cognito:groups', [])
+            'groups': groups,
+            'is_admin': 'admin' in groups or 'admins' in groups
         }
         
         return user
