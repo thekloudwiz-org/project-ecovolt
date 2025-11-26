@@ -4,6 +4,7 @@
  */
 
 import { get, post, put, del } from 'aws-amplify/api'
+import { fetchAuthSession } from 'aws-amplify/auth'
 import type {
   DashboardMetrics,
   Station,
@@ -20,11 +21,30 @@ import type {
 
 const API_NAME = 'EcoVoltAPI'
 
+// Helper to get auth headers
+async function getAuthHeaders() {
+  try {
+    const session = await fetchAuthSession()
+    const token = session.tokens?.idToken?.toString()
+    if (!token) {
+      throw new Error('No authentication token available')
+    }
+    return {
+      Authorization: `Bearer ${token}`,
+    }
+  } catch (error) {
+    console.error('Error getting auth headers:', error)
+    throw error
+  }
+}
+
 // Dashboard
 export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: '/admin/dashboard',
+    options: { headers },
   }).response
   const data = await response.body.json()
   return data as unknown as DashboardMetrics
@@ -32,10 +52,12 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
 
 // Stations
 export const getStations = async (page = 1, pageSize = 20) => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: '/admin/stations',
     options: {
+      headers,
       queryParams: { page: page.toString(), page_size: pageSize.toString() },
     },
   }).response
@@ -44,42 +66,49 @@ export const getStations = async (page = 1, pageSize = 20) => {
 }
 
 export const createStation = async (data: StationFormData): Promise<Station> => {
+  const headers = await getAuthHeaders()
   const response = await post({
     apiName: API_NAME,
     path: '/admin/stations',
-    options: { body: data as any },
+    options: { headers, body: data as any },
   }).response
   const result = await response.body.json()
   return (result as any).station as Station
 }
 
 export const updateStation = async (id: string, data: Partial<StationFormData>): Promise<Station> => {
+  const headers = await getAuthHeaders()
   const response = await put({
     apiName: API_NAME,
     path: `/admin/stations/${id}`,
-    options: { body: data as any },
+    options: { headers, body: data as any },
   }).response
   const result = await response.body.json()
   return (result as any).station as Station
 }
 
 export const deleteStation = async (id: string): Promise<void> => {
+  const headers = await getAuthHeaders()
   await del({
     apiName: API_NAME,
     path: `/admin/stations/${id}`,
+    options: { headers },
   }).response
 }
 
 // Bikes
 export const getBikes = async (page = 1, pageSize = 20) => {
   try {
-    const response = await get({
+    const headers = await getAuthHeaders()
+    const restOperation = get({
       apiName: API_NAME,
       path: '/admin/bikes',
       options: {
+        headers,
         queryParams: { page: page.toString(), page_size: pageSize.toString() },
       },
-    }).response
+    })
+    const response = await restOperation.response
     const data = await response.body.json()
     return data as unknown as { bikes: Bike[]; pagination: any }
   } catch (error: any) {
@@ -89,30 +118,33 @@ export const getBikes = async (page = 1, pageSize = 20) => {
 }
 
 export const createBike = async (data: BikeFormData): Promise<Bike> => {
+  const headers = await getAuthHeaders()
   const response = await post({
     apiName: API_NAME,
     path: '/admin/bikes',
-    options: { body: data as any },
+    options: { headers, body: data as any },
   }).response
   const result = await response.body.json()
   return (result as any).bike as Bike
 }
 
 export const updateBike = async (id: string, data: Partial<BikeFormData>): Promise<Bike> => {
+  const headers = await getAuthHeaders()
   const response = await put({
     apiName: API_NAME,
     path: `/admin/bikes/${id}`,
-    options: { body: data as any },
+    options: { headers, body: data as any },
   }).response
   const result = await response.body.json()
   return (result as any).bike as Bike
 }
 
 export const assignBike = async (id: string, userId: string): Promise<Bike> => {
+  const headers = await getAuthHeaders()
   const response = await put({
     apiName: API_NAME,
     path: `/admin/bikes/${id}/assign`,
-    options: { body: { user_id: userId } as any },
+    options: { headers, body: { user_id: userId } as any },
   }).response
   const result = await response.body.json()
   return (result as any).bike as Bike
@@ -121,10 +153,12 @@ export const assignBike = async (id: string, userId: string): Promise<Bike> => {
 // Users
 export const getUsers = async (page = 1, pageSize = 20) => {
   try {
+    const headers = await getAuthHeaders()
     const response = await get({
       apiName: API_NAME,
       path: '/admin/users',
       options: {
+        headers,
         queryParams: { page: page.toString(), page_size: pageSize.toString() },
       },
     }).response
@@ -137,9 +171,11 @@ export const getUsers = async (page = 1, pageSize = 20) => {
 }
 
 export const getUser = async (id: string): Promise<UserDetails> => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: `/admin/users/${id}`,
+    options: { headers },
   }).response
   const data = await response.body.json()
   return data as unknown as UserDetails
@@ -150,19 +186,22 @@ export const adjustWalletBalance = async (
   adjustment: number,
   reason: string
 ): Promise<void> => {
+  const headers = await getAuthHeaders()
   await put({
     apiName: API_NAME,
     path: `/admin/users/${userId}/wallet`,
-    options: { body: { adjustment, reason } as any },
+    options: { headers, body: { adjustment, reason } as any },
   }).response
 }
 
 // Analytics
 export const getAnalytics = async (startDate: string, endDate: string): Promise<TimeSeriesAnalytics> => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics',
     options: {
+      headers,
       queryParams: { start_date: startDate, end_date: endDate },
     },
   }).response
@@ -171,10 +210,12 @@ export const getAnalytics = async (startDate: string, endDate: string): Promise<
 }
 
 export const getStationAnalytics = async (startDate: string, endDate: string): Promise<StationAnalytics> => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics/stations',
     options: {
+      headers,
       queryParams: { start_date: startDate, end_date: endDate },
     },
   }).response
@@ -183,10 +224,12 @@ export const getStationAnalytics = async (startDate: string, endDate: string): P
 }
 
 export const getRevenueAnalytics = async (startDate: string, endDate: string): Promise<RevenueAnalytics> => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics/revenue',
     options: {
+      headers,
       queryParams: { start_date: startDate, end_date: endDate },
     },
   }).response
@@ -195,9 +238,11 @@ export const getRevenueAnalytics = async (startDate: string, endDate: string): P
 }
 
 export const getBatteryAnalytics = async (): Promise<BatteryAnalytics> => {
+  const headers = await getAuthHeaders()
   const response = await get({
     apiName: API_NAME,
     path: '/admin/analytics/batteries',
+    options: { headers },
   }).response
   const data = await response.body.json()
   return data as unknown as BatteryAnalytics
