@@ -221,6 +221,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 groups = user.get('cognito:groups', [])
                 if isinstance(groups, str):
                     groups = [groups]
+                
+                # Debug: log user claims
+                print(json.dumps({
+                    'event': 'admin_check',
+                    'user_id': user.get('user_id') or user.get('sub'),
+                    'groups': groups,
+                    'all_claims': list(user.keys())
+                }))
+                
                 is_admin = 'admin' in groups or 'admins' in groups or user.get('is_admin', False)
                 
                 if not is_admin:
