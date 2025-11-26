@@ -51,6 +51,19 @@ echo "  ✅ USER_POOL_ID_${ENVIRONMENT_UPPER}"
 gh secret set USER_POOL_CLIENT_ID_${ENVIRONMENT_UPPER} --body "$USER_POOL_CLIENT_ID"
 echo "  ✅ USER_POOL_CLIENT_ID_${ENVIRONMENT_UPPER}"
 
+# Backend Lambda Functions
+gh secret set api_handler_${ENVIRONMENT}_lambda --body "ecovolt-${ENVIRONMENT}-api-handler"
+echo "  ✅ api_handler_${ENVIRONMENT}_lambda"
+
+gh secret set iot_processor_${ENVIRONMENT}_lambda --body "ecovolt-${ENVIRONMENT}-iot-processor"
+echo "  ✅ iot_processor_${ENVIRONMENT}_lambda"
+
+gh secret set auth_handler_${ENVIRONMENT}_lambda --body "ecovolt-${ENVIRONMENT}-auth-handler"
+echo "  ✅ auth_handler_${ENVIRONMENT}_lambda"
+
+gh secret set db_migrator_${ENVIRONMENT}_lambda --body "ecovolt-${ENVIRONMENT}-db-migrator"
+echo "  ✅ db_migrator_${ENVIRONMENT}_lambda"
+
 echo ""
 echo "✅ GitHub secrets configured successfully!"
 echo ""
@@ -60,5 +73,9 @@ echo "  - ADMIN_PORTAL_CLOUDFRONT_ID_${ENVIRONMENT_UPPER}"
 echo "  - API_URL_${ENVIRONMENT_UPPER}"
 echo "  - USER_POOL_ID_${ENVIRONMENT_UPPER}"
 echo "  - USER_POOL_CLIENT_ID_${ENVIRONMENT_UPPER}"
+echo "  - api_handler_${ENVIRONMENT}_lambda"
+echo "  - iot_processor_${ENVIRONMENT}_lambda"
+echo "  - auth_handler_${ENVIRONMENT}_lambda"
+echo "  - db_migrator_${ENVIRONMENT}_lambda"
 echo ""
-echo "🚀 Admin portal workflow is now ready to deploy!"
+echo "🚀 Backend and admin portal workflows are now ready to deploy!"

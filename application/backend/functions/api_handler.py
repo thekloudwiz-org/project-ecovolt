@@ -199,12 +199,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             event['correlation_id'] = correlation_id
             
             # Ensure user record exists in database (lazy creation)
-            # Temporarily disabled - Lambda outside VPC can't reach RDS
-            # from utils.user_sync import ensure_user_exists
-            # db_user = ensure_user_exists(user)
-            # if db_user:
-            #     event['db_user'] = db_user
-            db_user = None
+            from utils.user_sync import ensure_user_exists
+            db_user = ensure_user_exists(user)
+            if db_user:
+                event['db_user'] = db_user
             
             print(json.dumps({
                 'correlation_id': correlation_id,
