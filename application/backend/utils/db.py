@@ -13,28 +13,7 @@ from contextlib import contextmanager
 from .retry import retry_on_db_error, retry_on_dynamodb_error
 
 # AWS clients
-secrets_client = boto3.client('secretsmanager')
 dynamodb = boto3.resource('dynamodb')
-
-# Cache for database credentials
-_db_credentials = None
-
-
-@retry_on_db_error(max_attempts=3)
-def get_db_credentials() -> Dict[str, str]:
-    """Get database credentials from Secrets Manager with retry logic"""
-    global _db_credentials
-    
-    if _db_credentials:
-        return _db_credentials
-    
-    secret_arn = os.getenv('DB_SECRET_ARN')
-    if not secret_arn:
-        raise ValueError("DB_SECRET_ARN environment variable not set")
-    
-    response = secrets_client.get_secret_value(SecretId=secret_arn)
-    _db_credentials = json.loads(response['SecretString'])
-    return _db_credentials
 
 
 @contextmanager
@@ -42,18 +21,28 @@ def get_db_connection():
     """
     Context manager for PostgreSQL database connection
     
+    Credentials are injected via environment variables at deploy time by Terraform.
+    No runtime AWS API calls needed - works entirely within VPC.
+    
     Usage:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM stations")
     """
-    creds = get_db_credentials()
+    # Read credentials directly from environment (injected by Terraform)
+    db_host = os.getenv('DB_HOST')
+    db_name = os.getenv('DB_NAME', 'ecovolt')
+    db_user = os.getenv('DB_USER')
+    db_pass = os.getenv('DB_PASS')
+    
+    if not all([db_host, db_user, db_pass]):
+        raise ValueError("Database credentials not found in environment variables")
     
     conn = psycopg2.connect(
-        host=os.getenv('DB_ENDPOINT'),
-        database=os.getenv('DB_NAME', 'ecovolt'),
-        user=creds['username'],
-        password=creds['password'],
+        host=db_host,
+        database=db_name,
+        user=db_user,
+        password=db_pass,
         cursor_factory=RealDictCursor
     )
     

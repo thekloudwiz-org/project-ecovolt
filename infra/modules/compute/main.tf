@@ -5,6 +5,15 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# Retrieve database credentials from Secrets Manager
+data "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id = var.db_secret_arn
+}
+
+locals {
+  db_creds = jsondecode(data.aws_secretsmanager_secret_version.db_credentials.secret_string)
+}
+
 # ============================================================================
 # Security Group for Lambda Functions
 # ============================================================================
@@ -324,7 +333,7 @@ resource "aws_lambda_function" "api_handler" {
   source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
   memory_size      = var.lambda_memory_size
-  timeout          = 120  # 2 minutes - enough for VPC cold start + DB operations
+  timeout          = 120 # 2 minutes - enough for VPC cold start + DB operations
 
   # VPC configuration - Business Lambda inside VPC for database access
   # Handles business logic: stations, swaps, bikes, wallet operations
@@ -337,9 +346,10 @@ resource "aws_lambda_function" "api_handler" {
   environment {
     variables = {
       ENVIRONMENT                  = var.environment
-      DB_ENDPOINT                  = var.db_endpoint
+      DB_HOST                      = var.db_endpoint
       DB_NAME                      = var.db_name
-      DB_SECRET_ARN                = var.db_secret_arn
+      DB_USER                      = local.db_creds["username"]
+      DB_PASS                      = local.db_creds["password"]
       COGNITO_USER_POOL_ID         = var.cognito_user_pool_id
       COGNITO_APP_CLIENT_ID        = var.cognito_client_id
       DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
@@ -415,9 +425,10 @@ resource "aws_lambda_function" "iot_processor" {
   environment {
     variables = {
       ENVIRONMENT                  = var.environment
-      DB_ENDPOINT                  = var.db_endpoint
+      DB_HOST                      = var.db_endpoint
       DB_NAME                      = var.db_name
-      DB_SECRET_ARN                = var.db_secret_arn
+      DB_USER                      = local.db_creds["username"]
+      DB_PASS                      = local.db_creds["password"]
       DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
       DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"

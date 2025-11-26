@@ -340,42 +340,76 @@ Workflows are located in `.github/workflows/`:
 
 ### AWS Secrets Manager
 
-#### 1. Store Database Credentials
+#### 1. Database Credentials (Terraform Managed)
 
-```bash
-aws secretsmanager create-secret \
-  --name ecovolt/dev/database \
-  --description "EcoVolt database credentials" \
-  --secret-string '{
-    "username": "ecovolt_admin",
-    "password": "SECURE_PASSWORD",
-    "engine": "postgres",
-    "host": "ecovolt-db.xxx.eu-central-1.rds.amazonaws.com",
-    "port": 5432,
-    "dbname": "ecovolt"
-  }'
+Database credentials are automatically generated and managed by Terraform:
+
+```hcl
+# Terraform creates random password
+resource "random_password" "db_master_password" {
+  length  = 16
+  special = false
+}
+
+# Stores in Secrets Manager
+resource "aws_secretsmanager_secret_version" "db_master_credentials" {
+  secret_id = aws_secretsmanager_secret.db_master_credentials.id
+  secret_string = jsonencode({
+    username = var.db_username
+    password = random_password.db_master_password.result
+  })
+}
 ```
 
-#### 2. Enable Automatic Rotation
+#### 2. Credential Injection into Lambda
 
-```bash
-aws secretsmanager rotate-secret \
-  --secret-id ecovolt/dev/database \
-  --rotation-lambda-arn arn:aws:lambda:eu-central-1:ACCOUNT:function:SecretsManagerRotation \
-  --rotation-rules AutomaticallyAfterDays=30
+Terraform injects credentials at deploy time (no runtime API calls):
+
+```hcl
+# Terraform reads secret at deploy time
+data "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id = var.db_secret_arn
+}
+
+locals {
+  db_creds = jsondecode(data.aws_secretsmanager_secret_version.db_credentials.secret_string)
+}
+
+# Injects into Lambda environment
+resource "aws_lambda_function" "api_handler" {
+  environment {
+    variables = {
+      DB_HOST = var.db_endpoint
+      DB_USER = local.db_creds["username"]
+      DB_PASS = local.db_creds["password"]
+    }
+  }
+}
 ```
 
-#### 3. Access from Lambda
+#### 3. Lambda Access (No AWS API Calls)
+
+Lambda reads credentials directly from environment:
 
 ```python
-import boto3
-import json
+import os
+import psycopg2
 
-def get_db_credentials():
-    client = boto3.client('secretsmanager', region_name='eu-central-1')
-    response = client.get_secret_value(SecretId='ecovolt/dev/database')
-    return json.loads(response['SecretString'])
+def get_db_connection():
+    """Credentials injected by Terraform - no AWS API calls needed"""
+    return psycopg2.connect(
+        host=os.environ['DB_HOST'],
+        database=os.environ['DB_NAME'],
+        user=os.environ['DB_USER'],
+        password=os.environ['DB_PASS']
+    )
 ```
+
+**Benefits:**
+- No VPC endpoints needed for Secrets Manager
+- Faster Lambda cold starts (no API calls)
+- Works entirely within VPC
+- Immediate secret deletion in dev (0-day recovery window)
 
 ## Disaster Recovery
 

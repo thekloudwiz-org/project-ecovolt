@@ -298,7 +298,7 @@ resource "aws_cloudwatch_metric_alarm" "db_storage" {
 
 # Kinesis Iterator Age
 resource "aws_cloudwatch_metric_alarm" "kinesis_iterator_age" {
-  
+
 
   alarm_name          = "${local.kinesis_alarm_prefix}-iterator-age"
   comparison_operator = "GreaterThanThreshold"

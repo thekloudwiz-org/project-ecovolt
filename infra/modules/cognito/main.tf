@@ -173,9 +173,9 @@ resource "aws_cognito_user_pool_client" "mobile_app" {
   logout_urls                          = var.mobile_app_logout_urls
 
   # Token validity
-  id_token_validity      = 60  # 60 minutes
-  access_token_validity  = 60  # 60 minutes
-  refresh_token_validity = 30  # 30 days
+  id_token_validity      = 60 # 60 minutes
+  access_token_validity  = 60 # 60 minutes
+  refresh_token_validity = 30 # 30 days
 
   token_validity_units {
     id_token      = "minutes"
@@ -221,16 +221,16 @@ resource "aws_cognito_user_pool_client" "admin_portal" {
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
   callback_urls                        = var.admin_portal_callback_urls
   logout_urls                          = var.admin_portal_logout_urls
-  
+
   explicit_auth_flows = [
     "ALLOW_USER_SRP_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH"
   ]
 
   # Token validity
-  id_token_validity      = 60  # 60 minutes
-  access_token_validity  = 60  # 60 minutes
-  refresh_token_validity = 7   # 7 days
+  id_token_validity      = 60 # 60 minutes
+  access_token_validity  = 60 # 60 minutes
+  refresh_token_validity = 7  # 7 days
 
   token_validity_units {
     id_token      = "minutes"

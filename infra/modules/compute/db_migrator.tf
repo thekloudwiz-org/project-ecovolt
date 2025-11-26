@@ -22,12 +22,12 @@ resource "aws_lambda_function" "db_migrator" {
   handler          = "functions.db_migrator.handler"
   source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
-  memory_size      = 1024  # More memory for pip install and database operations
-  timeout          = 600   # 10 minutes for pip install + migrations
-  
+  memory_size      = 1024 # More memory for pip install and database operations
+  timeout          = 600  # 10 minutes for pip install + migrations
+
   # Ephemeral storage for pip install
   ephemeral_storage {
-    size = 1024  # 1 GB for pip packages
+    size = 1024 # 1 GB for pip packages
   }
 
   # VPC configuration - needs access to RDS
@@ -40,8 +40,11 @@ resource "aws_lambda_function" "db_migrator" {
   environment {
     variables = {
       ENVIRONMENT      = var.environment
-      DB_SECRET_ARN    = var.db_secret_arn
-      MIGRATION_BUCKET = ""  # Will be set via workflow
+      DB_HOST          = var.db_endpoint
+      DB_NAME          = var.db_name
+      DB_USER          = local.db_creds["username"]
+      DB_PASS          = local.db_creds["password"]
+      MIGRATION_BUCKET = "" # Will be set via workflow
       MIGRATION_PREFIX = "migrations/${var.environment}/"
       LOG_LEVEL        = "INFO"
     }
@@ -71,8 +74,7 @@ resource "aws_lambda_function" "db_migrator" {
   depends_on = [
     aws_cloudwatch_log_group.db_migrator,
     aws_iam_role_policy.lambda_basic_execution,
-    aws_iam_role_policy.lambda_vpc_execution,
-    aws_iam_role_policy.lambda_secrets
+    aws_iam_role_policy.lambda_vpc_execution
   ]
 }
 

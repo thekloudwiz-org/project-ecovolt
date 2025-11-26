@@ -3,10 +3,10 @@
 
 # EV Stations Table
 resource "aws_dynamodb_table" "stations" {
-  name           = "${var.project_name}-${var.environment}-stations"
-  billing_mode   = var.billing_mode
-  hash_key       = "stationId"
-  stream_enabled = true
+  name             = "${var.project_name}-${var.environment}-stations"
+  billing_mode     = var.billing_mode
+  hash_key         = "stationId"
+  stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   # Provisioned capacity (only used if billing_mode = "PROVISIONED")
@@ -74,10 +74,10 @@ resource "aws_dynamodb_table" "stations" {
 
 # User Profiles Table
 resource "aws_dynamodb_table" "user_profiles" {
-  name           = "${var.project_name}-${var.environment}-user-profiles"
-  billing_mode   = var.billing_mode
-  hash_key       = "userId"
-  stream_enabled = true
+  name             = "${var.project_name}-${var.environment}-user-profiles"
+  billing_mode     = var.billing_mode
+  hash_key         = "userId"
+  stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   read_capacity  = var.billing_mode == "PROVISIONED" ? var.users_read_capacity : null
@@ -141,10 +141,10 @@ resource "aws_dynamodb_table" "user_profiles" {
 
 # Vehicle Last Known Status Table
 resource "aws_dynamodb_table" "vehicle_status" {
-  name           = "${var.project_name}-${var.environment}-vehicle-status"
-  billing_mode   = var.billing_mode
-  hash_key       = "vehicleId"
-  stream_enabled = true
+  name             = "${var.project_name}-${var.environment}-vehicle-status"
+  billing_mode     = var.billing_mode
+  hash_key         = "vehicleId"
+  stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   read_capacity  = var.billing_mode == "PROVISIONED" ? var.vehicle_status_read_capacity : null
@@ -216,10 +216,10 @@ resource "aws_dynamodb_table" "vehicle_status" {
 
 # Battery Inventory Table (at stations)
 resource "aws_dynamodb_table" "battery_inventory" {
-  name           = "${var.project_name}-${var.environment}-battery-inventory"
-  billing_mode   = var.billing_mode
-  hash_key       = "batteryId"
-  stream_enabled = true
+  name             = "${var.project_name}-${var.environment}-battery-inventory"
+  billing_mode     = var.billing_mode
+  hash_key         = "batteryId"
+  stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   read_capacity  = var.billing_mode == "PROVISIONED" ? var.battery_read_capacity : null
@@ -290,11 +290,11 @@ resource "aws_dynamodb_table" "battery_inventory" {
 
 # Swap Events Table (transaction history)
 resource "aws_dynamodb_table" "swap_events" {
-  name           = "${var.project_name}-${var.environment}-swap-events"
-  billing_mode   = var.billing_mode
-  hash_key       = "swapId"
-  range_key      = "timestamp"
-  stream_enabled = true
+  name             = "${var.project_name}-${var.environment}-swap-events"
+  billing_mode     = var.billing_mode
+  hash_key         = "swapId"
+  range_key        = "timestamp"
+  stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   read_capacity  = var.billing_mode == "PROVISIONED" ? var.swap_events_read_capacity : null

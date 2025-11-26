@@ -11,7 +11,6 @@ import sys
 from typing import Dict, Any, List
 
 # Initialize AWS clients
-secretsmanager = boto3.client('secretsmanager')
 s3 = boto3.client('s3')
 
 # Install psycopg2-binary at runtime
@@ -34,32 +33,25 @@ except ImportError:
     import psycopg2
 
 
-def get_db_credentials() -> Dict[str, str]:
-    """Fetch database credentials from Secrets Manager"""
-    secret_arn = os.environ['DB_SECRET_ARN']
-    
-    response = secretsmanager.get_secret_value(SecretId=secret_arn)
-    secret = json.loads(response['SecretString'])
-    
-    return {
-        'host': secret['host'],
-        'port': secret['port'],
-        'dbname': secret['dbname'],
-        'user': secret['username'],
-        'password': secret['password']
-    }
-
-
 def get_db_connection():
-    """Create database connection"""
-    creds = get_db_credentials()
+    """
+    Create database connection using credentials from environment variables.
+    Credentials are injected by Terraform at deploy time - no AWS API calls needed.
+    """
+    db_host = os.environ.get('DB_HOST')
+    db_name = os.environ.get('DB_NAME')
+    db_user = os.environ.get('DB_USER')
+    db_pass = os.environ.get('DB_PASS')
+    
+    if not all([db_host, db_name, db_user, db_pass]):
+        raise ValueError("Database credentials not found in environment variables")
     
     return psycopg2.connect(
-        host=creds['host'],
-        port=creds['port'],
-        dbname=creds['dbname'],
-        user=creds['user'],
-        password=creds['password'],
+        host=db_host,
+        port=5432,
+        dbname=db_name,
+        user=db_user,
+        password=db_pass,
         connect_timeout=10
     )
 

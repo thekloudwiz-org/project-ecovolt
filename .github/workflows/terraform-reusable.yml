@@ -147,8 +147,7 @@ jobs:
           working_directory: ${{ inputs.working_directory }}
           soft_fail: true
           format: sarif
-          sarif_file: tfsec-results.sarif
-          additional_args: --minimum-severity MEDIUM
+          additional_args: --minimum-severity MEDIUM --out tfsec-results.sarif
         continue-on-error: true
 
       - name: Upload tfsec results
@@ -310,7 +309,7 @@ jobs:
           terraform apply -auto-approve ${{ inputs.environment }}.tfplan
       
       - name: Terraform Output
-        id: output
+        id: terraform-output
         run: |
           cd ${{ inputs.working_directory }}
           terraform output -json > outputs.json
@@ -328,7 +327,7 @@ jobs:
             })
 
       - name: Terraform Output
-        id: output
+        id: output-json
         run: terraform output -json > outputs.json
 
       - name: Upload Outputs

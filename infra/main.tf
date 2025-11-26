@@ -22,10 +22,10 @@ module "networking" {
 module "security" {
   source = "./modules/security"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  enable_cloudtrail      = var.enable_cloudtrail
-  enable_guardduty       = var.enable_guardduty
+  project_name            = var.project_name
+  environment             = var.environment
+  enable_cloudtrail       = var.enable_cloudtrail
+  enable_guardduty        = var.enable_guardduty
   enable_kms_key_rotation = true
 
   tags = local.common_tags
@@ -39,10 +39,10 @@ module "cognito" {
   environment  = var.environment
 
   # Security settings
-  enable_mfa               = var.enable_cognito_mfa
-  enable_advanced_security = var.enable_cognito_advanced_security
+  enable_mfa                 = var.enable_cognito_mfa
+  enable_advanced_security   = var.enable_cognito_advanced_security
   create_separate_admin_pool = var.create_separate_admin_pool
-  create_identity_pool     = var.create_cognito_identity_pool
+  create_identity_pool       = var.create_cognito_identity_pool
 
   # OAuth callback URLs
   mobile_app_callback_urls   = var.mobile_app_callback_urls
@@ -108,16 +108,16 @@ module "analytics" {
 module "database" {
   source = "./modules/database"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  vpc_id                = module.networking.vpc_id
-  data_subnet_ids       = module.networking.data_subnet_ids
-  private_subnet_cidrs  = module.networking.private_subnet_cidrs
-  kms_key_arn           = module.security.kms_key_arn
-  
+  project_name         = var.project_name
+  environment          = var.environment
+  vpc_id               = module.networking.vpc_id
+  data_subnet_ids      = module.networking.data_subnet_ids
+  private_subnet_cidrs = module.networking.private_subnet_cidrs
+  kms_key_arn          = module.security.kms_key_arn
+
   # RDS Configuration
-  db_name                  = var.db_name
-  db_username              = var.db_username
+  db_name     = var.db_name
+  db_username = var.db_username
   # Password is auto-generated in the module
   db_instance_class        = var.db_instance_class
   db_allocated_storage     = var.db_allocated_storage
@@ -134,26 +134,26 @@ module "database" {
 
   tags = local.common_tags
 
-  depends_on = [ module.networking, module.security, module.analytics ]
+  depends_on = [module.networking, module.security, module.analytics]
 }
 
 # Compute Module
 module "compute" {
   source = "./modules/compute"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  vpc_id                 = module.networking.vpc_id
-  private_subnet_ids     = module.networking.private_subnet_ids
-  
-  db_endpoint            = module.database.db_address  # Use address (hostname only) instead of endpoint (hostname:port)
-  db_name                = module.database.db_name
-  db_security_group_id   = module.database.db_security_group_id
-  db_secret_arn          = module.database.db_secret_arn
-  kinesis_stream_arn     = module.analytics.kinesis_stream_arn
-  
-  lambda_runtime            = var.lambda_runtime
-  enable_xray_tracing       = var.enable_xray_tracing
+  project_name       = var.project_name
+  environment        = var.environment
+  vpc_id             = module.networking.vpc_id
+  private_subnet_ids = module.networking.private_subnet_ids
+
+  db_endpoint          = module.database.db_address # Use address (hostname only) instead of endpoint (hostname:port)
+  db_name              = module.database.db_name
+  db_security_group_id = module.database.db_security_group_id
+  db_secret_arn        = module.database.db_secret_arn
+  kinesis_stream_arn   = module.analytics.kinesis_stream_arn
+
+  lambda_runtime      = var.lambda_runtime
+  enable_xray_tracing = var.enable_xray_tracing
 
   # Cognito integration
   # Disabled: Auth handled in Lambda code, not API Gateway
@@ -163,36 +163,36 @@ module "compute" {
   cognito_client_id         = module.cognito.mobile_app_client_id
 
   # DynamoDB integration
-  dynamodb_table_arns    = module.dynamodb.all_table_arns
-  dynamodb_stream_arns   = module.dynamodb.all_table_stream_arns
-  dynamodb_table_names   = module.dynamodb.all_table_names
+  dynamodb_table_arns  = module.dynamodb.all_table_arns
+  dynamodb_stream_arns = module.dynamodb.all_table_stream_arns
+  dynamodb_table_names = module.dynamodb.all_table_names
 
   # IoT integration
-  iot_endpoint           = module.iot.iot_endpoint
+  iot_endpoint = module.iot.iot_endpoint
 
   tags = local.common_tags
 
-  depends_on = [ module.networking, module.analytics, module.iot ]
+  depends_on = [module.networking, module.analytics, module.iot]
 }
 
 # Monitoring Module
 module "monitoring" {
   source = "./modules/monitoring"
 
-  project_name              = var.project_name
-  environment               = var.environment
-  alarm_email_addresses     = var.alarm_email_addresses
-  alarm_phone_numbers       = var.alarm_phone_numbers
-  
-  lambda_function_names     = [module.compute.api_handler_function_name]
-  api_gateway_id            = module.compute.api_gateway_id
-  api_gateway_stage_name    = module.compute.api_gateway_stage_name
-  db_instance_id            = module.database.db_instance_id
-  kinesis_stream_name       = module.analytics.kinesis_stream_name
+  project_name          = var.project_name
+  environment           = var.environment
+  alarm_email_addresses = var.alarm_email_addresses
+  alarm_phone_numbers   = var.alarm_phone_numbers
+
+  lambda_function_names  = [module.compute.api_handler_function_name]
+  api_gateway_id         = module.compute.api_gateway_id
+  api_gateway_stage_name = module.compute.api_gateway_stage_name
+  db_instance_id         = module.database.db_instance_id
+  kinesis_stream_name    = module.analytics.kinesis_stream_name
 
   tags = local.common_tags
 
-  depends_on = [ module.networking, module.compute, module.security, module.analytics, module.database ]
+  depends_on = [module.networking, module.compute, module.security, module.analytics, module.database]
 }
 
 # Billing Module
@@ -239,9 +239,9 @@ module "waf" {
   environment  = var.environment
 
   # Enable WAF for CloudFront and API Gateway
-  enable_cloudfront_waf   = var.enable_waf_cloudfront
-  enable_api_gateway_waf  = var.enable_waf_api_gateway
-  enable_waf_logging      = var.enable_waf_logging
+  enable_cloudfront_waf  = var.enable_waf_cloudfront
+  enable_api_gateway_waf = var.enable_waf_api_gateway
+  enable_waf_logging     = var.enable_waf_logging
 
   # Rate limits
   cloudfront_rate_limit  = var.waf_cloudfront_rate_limit
@@ -272,11 +272,11 @@ module "compliance" {
 module "disaster_recovery" {
   source = "./modules/disaster-recovery"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  primary_region         = var.aws_region
-  dr_region              = var.dr_region
-  enable_s3_replication  = var.enable_s3_replication
+  project_name          = var.project_name
+  environment           = var.environment
+  primary_region        = var.aws_region
+  dr_region             = var.dr_region
+  enable_s3_replication = var.enable_s3_replication
 
   tags = local.common_tags
 }

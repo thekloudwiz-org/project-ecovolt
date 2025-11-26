@@ -1,24 +1,21 @@
 # Database Secrets Management
-# Handles automatic password generation and rotation using AWS Secrets Manager
+# Simple password generation and storage without rotation
+# Credentials are injected into Lambda via Terraform at deploy time
 
-# Generate random password for RDS
+# Generate random password for RDS (no special chars to avoid connection string issues)
 resource "random_password" "db_master_password" {
-  length  = 32
-  special = true
-  # Exclude characters that might cause issues in connection strings
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  length  = 16
+  special = false
 }
 
 # Store RDS credentials in Secrets Manager
-resource "random_id" "secret_suffix" {
-  byte_length = 2
-}
-
 resource "aws_secretsmanager_secret" "db_master_credentials" {
-  name        = "${var.project_name}-${var.environment}-rds-master-credentials-${random_id.secret_suffix.hex}"
-  description = "Master credentials for RDS PostgreSQL database"
+  name                           = "${var.project_name}-${var.environment}-rds-master-credentials"
+  description                    = "Master credentials for RDS PostgreSQL database"
+  force_overwrite_replica_secret = true
 
-  recovery_window_in_days = var.environment == "prod" ? 30 : 7
+  # Immediate deletion in dev, 30-day recovery in prod
+  recovery_window_in_days = var.environment == "dev" ? 0 : 30
 
   tags = merge(
     local.common_tags,
@@ -32,145 +29,9 @@ resource "aws_secretsmanager_secret" "db_master_credentials" {
 resource "aws_secretsmanager_secret_version" "db_master_credentials" {
   secret_id = aws_secretsmanager_secret.db_master_credentials.id
   secret_string = jsonencode({
-    username            = var.db_username
-    password            = random_password.db_master_password.result
-    engine              = "postgres"
-    host                = aws_db_instance.main.address
-    port                = aws_db_instance.main.port
-    dbname              = var.db_name
-    dbInstanceIdentifier = aws_db_instance.main.id
+    username = var.db_username
+    password = random_password.db_master_password.result
   })
-
-  depends_on = [aws_db_instance.main]
-}
-
-# Enable automatic rotation for the secret
-resource "aws_secretsmanager_secret_rotation" "db_master_credentials" {
-  count = var.enable_secret_rotation ? 1 : 0
-
-  secret_id           = aws_secretsmanager_secret.db_master_credentials.id
-  rotation_lambda_arn = aws_lambda_function.rotate_secret[0].arn
-
-  rotation_rules {
-    automatically_after_days = var.secret_rotation_days
-  }
-
-  depends_on = [
-    aws_secretsmanager_secret_version.db_master_credentials,
-    aws_lambda_permission.allow_secret_manager_call_lambda[0]
-  ]
-}
-
-# IAM Role for Secrets Manager rotation Lambda
-resource "aws_iam_role" "secrets_rotation" {
-  count = var.enable_secret_rotation ? 1 : 0
-
-  name = "${var.project_name}-${var.environment}-secrets-rotation-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-# IAM Policy for Secrets Manager rotation
-resource "aws_iam_role_policy" "secrets_rotation" {
-  count = var.enable_secret_rotation ? 1 : 0
-
-  name = "${var.project_name}-${var.environment}-secrets-rotation-policy"
-  role = aws_iam_role.secrets_rotation[0].id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:DescribeSecret",
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:PutSecretValue",
-          "secretsmanager:UpdateSecretVersionStage"
-        ]
-        Resource = aws_secretsmanager_secret.db_master_credentials.arn
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetRandomPassword"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "ec2:CreateNetworkInterface",
-          "ec2:DeleteNetworkInterface",
-          "ec2:DescribeNetworkInterfaces",
-          "ec2:DetachNetworkInterface"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.project_name}-${var.environment}-rotate-rds-secret:*"
-      }
-    ]
-  })
-}
-
-# Lambda function for secret rotation
-resource "aws_lambda_function" "rotate_secret" {
-  count = var.enable_secret_rotation ? 1 : 0
-
-  filename      = "${path.module}/lambda/rotate_secret.zip"
-  function_name = "${var.project_name}-${var.environment}-rotate-rds-secret"
-  role          = aws_iam_role.secrets_rotation[0].arn
-  handler       = "rotate_secret.lambda_handler"
-  runtime       = "python3.11"
-  timeout       = 30
-
-  vpc_config {
-    subnet_ids         = var.data_subnet_ids
-    security_group_ids = [aws_security_group.rds.id]
-  }
-
-  environment {
-    variables = {
-      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${data.aws_region.current.name}.amazonaws.com"
-    }
-  }
-
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${var.project_name}-${var.environment}-rotate-rds-secret"
-    }
-  )
-}
-
-# Lambda permission for Secrets Manager
-resource "aws_lambda_permission" "allow_secret_manager_call_lambda" {
-  count = var.enable_secret_rotation ? 1 : 0
-
-  function_name = aws_lambda_function.rotate_secret[0].function_name
-  statement_id  = "AllowExecutionFromSecretsManager"
-  action        = "lambda:InvokeFunction"
-  principal     = "secretsmanager.amazonaws.com"
 }
 
 # ============================================================================

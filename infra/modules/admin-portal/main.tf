@@ -131,7 +131,7 @@ resource "aws_cloudfront_distribution" "admin_portal" {
     }
 
     min_ttl     = 0
-    default_ttl = 86400   # 1 day
+    default_ttl = 86400    # 1 day
     max_ttl     = 31536000 # 1 year
   }
 

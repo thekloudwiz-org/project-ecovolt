@@ -89,9 +89,9 @@ resource "aws_elasticache_replication_group" "redis" {
   parameter_group_name = aws_elasticache_parameter_group.redis[0].name
 
   # Node configuration
-  node_type            = var.redis_node_type
-  num_cache_clusters   = var.redis_num_cache_nodes
-  
+  node_type          = var.redis_node_type
+  num_cache_clusters = var.redis_num_cache_nodes
+
   # Multi-AZ configuration
   automatic_failover_enabled = var.redis_multi_az
   multi_az_enabled           = var.redis_multi_az
@@ -109,10 +109,10 @@ resource "aws_elasticache_replication_group" "redis" {
   # Backup configuration
   snapshot_retention_limit = var.redis_snapshot_retention_limit
   snapshot_window          = var.redis_snapshot_window
-  
+
   # Maintenance
-  maintenance_window       = var.redis_maintenance_window
-  notification_topic_arn   = var.redis_notification_topic_arn
+  maintenance_window     = var.redis_maintenance_window
+  notification_topic_arn = var.redis_notification_topic_arn
 
   # Auto minor version upgrade
   auto_minor_version_upgrade = true

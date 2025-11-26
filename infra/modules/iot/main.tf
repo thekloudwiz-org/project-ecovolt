@@ -118,7 +118,7 @@ resource "aws_iot_policy" "device_policy" {
 # IAM Role for IoT Core Logging
 resource "aws_iam_role" "iot_logging" {
   count = var.enable_logging ? 1 : 0
-  
+
   name = local.iot_logging_role
 
   assume_role_policy = jsonencode({
@@ -140,7 +140,7 @@ resource "aws_iam_role" "iot_logging" {
 # IAM Policy for IoT Core Logging
 resource "aws_iam_role_policy" "iot_logging" {
   count = var.enable_logging ? 1 : 0
-  
+
   name = "${local.name_prefix}-iot-logging-policy"
   role = aws_iam_role.iot_logging[0].id
 
@@ -179,7 +179,7 @@ resource "aws_iot_indexing_configuration" "main" {
   thing_indexing_configuration {
     thing_indexing_mode              = "REGISTRY_AND_SHADOW"
     thing_connectivity_indexing_mode = "STATUS"
-    
+
     # Custom fields for device attributes
     # Note: connectivity.connected is automatically indexed when 
     # thing_connectivity_indexing_mode = "STATUS" and should not be defined here
@@ -187,12 +187,12 @@ resource "aws_iot_indexing_configuration" "main" {
       name = "attributes.model"
       type = "String"
     }
-    
+
     custom_field {
       name = "attributes.manufacturer"
       type = "String"
     }
-    
+
     custom_field {
       name = "attributes.serialNumber"
       type = "String"

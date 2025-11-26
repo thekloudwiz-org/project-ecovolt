@@ -66,7 +66,7 @@ variable "db_username" {
 variable "enable_secret_rotation" {
   description = "Enable automatic rotation of database credentials"
   type        = bool
-  default     = false  # Disabled by default for dev, enable for prod
+  default     = false # Disabled by default for dev, enable for prod
 }
 
 variable "secret_rotation_days" {

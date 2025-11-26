@@ -13,7 +13,7 @@ locals {
 
   # Certificate domains - specific certificates for better security
   cert_domains = var.use_wildcard_certificate ? ["*.${local.base_domain}"] : [local.api_domain, local.admin_domain]
-  
+
   common_tags = merge(var.tags, {
     Module      = "dns"
     Environment = var.environment
@@ -36,15 +36,15 @@ locals {
 # Using specific domains for better security
 resource "aws_acm_certificate" "main" {
   provider = aws.us-east-1
-  
+
   domain_name               = local.cert_domains[0]
   subject_alternative_names = length(local.cert_domains) > 1 ? slice(local.cert_domains, 1, length(local.cert_domains)) : []
   validation_method         = "DNS"
-  
+
   lifecycle {
     create_before_destroy = true
   }
-  
+
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-certificate"
     Type = var.use_wildcard_certificate ? "wildcard" : "specific"
@@ -60,7 +60,7 @@ resource "aws_route53_record" "cert_validation" {
       type   = dvo.resource_record_type
     }
   }
-  
+
   allow_overwrite = true
   name            = each.value.name
   records         = [each.value.record]
@@ -72,10 +72,10 @@ resource "aws_route53_record" "cert_validation" {
 # Certificate validation
 resource "aws_acm_certificate_validation" "main" {
   provider = aws.us-east-1
-  
+
   certificate_arn         = aws_acm_certificate.main.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
-  
+
   timeouts {
     create = "10m"
   }
@@ -87,7 +87,7 @@ resource "aws_ssm_parameter" "certificate_arn" {
   description = "ACM certificate ARN for ${var.environment} environment"
   type        = "String"
   value       = aws_acm_certificate.main.arn
-  
+
   tags = local.common_tags
 }
 
@@ -97,7 +97,7 @@ resource "aws_ssm_parameter" "api_domain" {
   description = "API domain name for ${var.environment} environment"
   type        = "String"
   value       = local.api_domain
-  
+
   tags = local.common_tags
 }
 
@@ -106,7 +106,7 @@ resource "aws_ssm_parameter" "admin_domain" {
   description = "Admin portal domain name for ${var.environment} environment"
   type        = "String"
   value       = local.admin_domain
-  
+
   tags = local.common_tags
 }
 

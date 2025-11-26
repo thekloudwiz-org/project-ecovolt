@@ -139,10 +139,10 @@ resource "aws_db_instance" "main" {
   multi_az = var.db_multi_az
 
   # Backup configuration
-  backup_retention_period = var.db_backup_retention_period
-  backup_window           = var.db_backup_window
-  maintenance_window      = var.db_maintenance_window
-  skip_final_snapshot     = var.db_skip_final_snapshot
+  backup_retention_period   = var.db_backup_retention_period
+  backup_window             = var.db_backup_window
+  maintenance_window        = var.db_maintenance_window
+  skip_final_snapshot       = var.db_skip_final_snapshot
   final_snapshot_identifier = var.db_skip_final_snapshot ? null : "${local.db_instance_identifier}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
 
   # Encryption

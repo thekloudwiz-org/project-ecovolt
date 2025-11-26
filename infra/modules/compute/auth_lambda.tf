@@ -23,8 +23,8 @@ resource "aws_lambda_function" "auth_handler" {
   handler          = "functions.api_handler.handler"
   source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
-  memory_size      = 256  # Auth operations are lightweight
-  timeout          = 30   # Shorter timeout for auth
+  memory_size      = 256 # Auth operations are lightweight
+  timeout          = 30  # Shorter timeout for auth
 
   # No VPC configuration - runs outside VPC for Cognito access
   # This saves costs (no ENI charges) and improves cold start time
@@ -48,8 +48,7 @@ resource "aws_lambda_function" "auth_handler" {
   lifecycle {
     ignore_changes = [
       filename,
-      source_code_hash,
-      last_modified
+      source_code_hash
     ]
   }
 

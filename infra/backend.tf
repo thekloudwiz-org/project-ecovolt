@@ -3,12 +3,12 @@
 
 terraform {
   backend "s3" {
-    bucket         = "thekloudwiz-tf-state-bucket"
-    key            = "project-ecovolt/dev-tf.state"  # Override per environment
-    region         = "eu-central-1"
-    encrypt        = true
+    bucket       = "thekloudwiz-tf-state-bucket"
+    key          = "project-ecovolt/dev-tf.state" # Override per environment
+    region       = "eu-central-1"
+    encrypt      = true
     use_lockfile = true
-    
+
     # Workspace configuration
     workspace_key_prefix = "project-ecovolt"
   }

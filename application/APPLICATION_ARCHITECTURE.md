@@ -16,7 +16,7 @@ The EcoVolt application consists of three main components:
 │                                                                  │
 │  ┌──────────────┐         ┌──────────────┐                     │
 │  │ Mobile App   │         │ Admin Portal │                     │
-│  │ (React Native│         │ (React)      │                     │
+│  │ (React Native│         │ (React)      │    │
 │  └──────┬───────┘         └──────┬───────┘                     │
 │         │                        │                              │
 │         └────────────┬───────────┘                              │

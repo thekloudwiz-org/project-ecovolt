@@ -26,10 +26,10 @@ locals {
   elasticache_security_group_name  = "${local.name_prefix}-elasticache-sg"
 
   # SSM Parameter Store paths
-  ssm_prefix                     = "/${var.project_name}/${var.environment}/database"
-  ssm_rds_endpoint_path          = "${local.ssm_prefix}/rds/endpoint"
-  ssm_rds_port_path              = "${local.ssm_prefix}/rds/port"
-  ssm_rds_database_name_path     = "${local.ssm_prefix}/rds/database_name"
-  ssm_elasticache_endpoint_path  = "${local.ssm_prefix}/elasticache/endpoint"
-  ssm_elasticache_port_path      = "${local.ssm_prefix}/elasticache/port"
+  ssm_prefix                    = "/${var.project_name}/${var.environment}/database"
+  ssm_rds_endpoint_path         = "${local.ssm_prefix}/rds/endpoint"
+  ssm_rds_port_path             = "${local.ssm_prefix}/rds/port"
+  ssm_rds_database_name_path    = "${local.ssm_prefix}/rds/database_name"
+  ssm_elasticache_endpoint_path = "${local.ssm_prefix}/elasticache/endpoint"
+  ssm_elasticache_port_path     = "${local.ssm_prefix}/elasticache/port"
 }

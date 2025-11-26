@@ -284,7 +284,7 @@ resource "aws_wafv2_web_acl" "api_gateway" {
     action {
       block {
         custom_response {
-          response_code = 429
+          response_code            = 429
           custom_response_body_key = "rate_limit_response"
         }
       }
@@ -329,8 +329,8 @@ resource "aws_wafv2_web_acl" "api_gateway" {
 
   # Custom response body for rate limiting
   custom_response_body {
-    key          = "rate_limit_response"
-    content      = jsonencode({
+    key = "rate_limit_response"
+    content = jsonencode({
       error   = "Too Many Requests"
       message = "You have exceeded the rate limit. Please try again later."
     })

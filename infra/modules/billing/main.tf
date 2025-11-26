@@ -3,7 +3,7 @@
 
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
-  
+
   common_tags = merge(
     var.tags,
     {
@@ -66,11 +66,11 @@ resource "aws_budgets_budget" "overall" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 
@@ -78,11 +78,11 @@ resource "aws_budgets_budget" "overall" {
   dynamic "notification" {
     for_each = var.enable_forecasted_alerts ? var.budget_thresholds : []
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "FORECASTED"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "FORECASTED"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 
@@ -123,11 +123,11 @@ resource "aws_budgets_budget" "compute" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 }
@@ -151,11 +151,11 @@ resource "aws_budgets_budget" "storage" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 }
@@ -179,11 +179,11 @@ resource "aws_budgets_budget" "database" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 }
@@ -207,11 +207,11 @@ resource "aws_budgets_budget" "iot" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 }
@@ -235,11 +235,11 @@ resource "aws_budgets_budget" "transfer" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 }
@@ -263,11 +263,11 @@ resource "aws_budgets_budget" "analytics" {
   dynamic "notification" {
     for_each = var.budget_thresholds
     content {
-      comparison_operator        = "GREATER_THAN"
-      threshold                  = notification.value
-      threshold_type             = "PERCENTAGE"
-      notification_type          = "ACTUAL"
-      subscriber_sns_topic_arns  = [aws_sns_topic.budget_alerts.arn]
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = notification.value
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.budget_alerts.arn]
     }
   }
 }
