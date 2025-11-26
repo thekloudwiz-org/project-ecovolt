@@ -53,6 +53,9 @@ def verify_token(token: str) -> Optional[Dict]:
             print("Invalid token: Audience doesn't match")
             return None
         
+        # Debug: log all claims
+        print(json.dumps({'event': 'jwt_claims', 'claims': claims}))
+        
         # Extract user information
         user = {
             'user_id': claims.get('sub'),
