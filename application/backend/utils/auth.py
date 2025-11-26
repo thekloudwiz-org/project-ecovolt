@@ -15,6 +15,7 @@ from functools import wraps
 COGNITO_REGION = os.getenv('AWS_REGION', 'eu-central-1')
 USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
 APP_CLIENT_ID = os.getenv('COGNITO_APP_CLIENT_ID')
+ADMIN_CLIENT_ID = os.getenv('COGNITO_ADMIN_CLIENT_ID', APP_CLIENT_ID)
 
 # JWK client for token verification
 jwks_url = f'https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json'
@@ -35,14 +36,22 @@ def verify_token(token: str) -> Optional[Dict]:
         # Get signing key
         signing_key = jwks_client.get_signing_key_from_jwt(token)
         
-        # Decode and verify token
-        claims = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256"],
-            audience=APP_CLIENT_ID,
-            options={"verify_exp": True}
-        )
+        # Try both client IDs (mobile app and admin portal)
+        for client_id in [APP_CLIENT_ID, ADMIN_CLIENT_ID]:
+            try:
+                claims = jwt.decode(
+                    token,
+                    signing_key.key,
+                    algorithms=["RS256"],
+                    audience=client_id,
+                    options={"verify_exp": True}
+                )
+                break
+            except jwt.InvalidAudienceError:
+                continue
+        else:
+            print("Invalid token: Audience doesn't match")
+            return None
         
         # Extract user information
         user = {
