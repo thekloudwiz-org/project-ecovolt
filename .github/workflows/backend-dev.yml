@@ -8,11 +8,15 @@ on:
       - 'application/backend/**'
       - '.github/workflows/backend-dev.yml'
       - '.github/workflows/backend-reusable.yml'
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches:
       - dev
     paths:
       - 'application/backend/**'
+    paths-ignore:
+      - '**/*.md'
 
 permissions:
   id-token: write

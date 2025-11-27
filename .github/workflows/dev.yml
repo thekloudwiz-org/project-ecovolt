@@ -8,6 +8,8 @@ on:
       - 'infra/**'
       - '.github/workflows/dev.yml'
       - '.github/workflows/terraform-reusable.yml'
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches:
       - dev
@@ -15,6 +17,8 @@ on:
       - 'infra/**'
       - '.github/workflows/dev.yml'
       - '.github/workflows/terraform-reusable.yml'
+    paths-ignore:
+      - '**/*.md'
 
 permissions:
   id-token: write
