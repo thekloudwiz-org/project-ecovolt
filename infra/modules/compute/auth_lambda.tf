@@ -32,11 +32,11 @@ resource "aws_lambda_function" "auth_handler" {
   # Environment variables
   environment {
     variables = {
-      ENVIRONMENT           = var.environment
-      COGNITO_USER_POOL_ID  = var.cognito_user_pool_id
-      COGNITO_APP_CLIENT_ID = var.cognito_client_id
-      COGNITO_ADMIN_CLIENT_ID  = var.cognito_admin_client_id
-      LOG_LEVEL             = "INFO"
+      ENVIRONMENT             = var.environment
+      COGNITO_USER_POOL_ID    = var.cognito_user_pool_id
+      COGNITO_APP_CLIENT_ID   = var.cognito_client_id
+      COGNITO_ADMIN_CLIENT_ID = var.cognito_admin_client_id
+      LOG_LEVEL               = "INFO"
     }
   }
 

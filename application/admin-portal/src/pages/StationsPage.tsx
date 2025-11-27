@@ -44,6 +44,16 @@ export default function StationsPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+
+    // Parse operating hours from "HH:MM-HH:MM" format to object
+    const operatingHoursStr = formData.get('operatingHours') as string
+    let operating_hours: { open: string; close: string } | string = operatingHoursStr
+
+    if (operatingHoursStr && operatingHoursStr.includes('-')) {
+      const [open, close] = operatingHoursStr.split('-').map(s => s.trim())
+      operating_hours = { open, close }
+    }
+
     const data = {
       name: formData.get('name') as string,
       address: formData.get('address') as string,
@@ -51,7 +61,7 @@ export default function StationsPage() {
       latitude: parseFloat(formData.get('latitude') as string),
       longitude: parseFloat(formData.get('longitude') as string),
       total_capacity: parseInt(formData.get('capacity') as string),
-      operating_hours: formData.get('operatingHours') as string,
+      operating_hours,
       status: formData.get('status') as 'active' | 'inactive' | 'maintenance',
     }
 
@@ -110,28 +120,40 @@ export default function StationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStations.map((station: Station) => (
-                  <tr key={station.station_id}>
-                    <td>{station.name}</td>
-                    <td>{station.city}</td>
-                    <td>{station.total_capacity}</td>
-                    <td>{station.address}</td>
-                    <td>{station.operating_hours || '24/7'}</td>
-                    <td>
-                      <span className={`status-badge status-${station.status}`}>
-                        {station.status}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="btn-icon" onClick={() => { setEditingStation(station); setShowModal(true) }}>
-                        Edit
-                      </button>
-                      <button className="btn-icon" onClick={() => handleDelete(station.station_id)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredStations.map((station: Station) => {
+                  // Format operating hours for display
+                  const formatOperatingHours = (hours: any) => {
+                    if (!hours) return '24/7'
+                    if (typeof hours === 'string') return hours
+                    if (typeof hours === 'object' && hours.open && hours.close) {
+                      return `${hours.open} - ${hours.close}`
+                    }
+                    return '24/7'
+                  }
+
+                  return (
+                    <tr key={station.station_id}>
+                      <td>{station.name}</td>
+                      <td>{station.city}</td>
+                      <td>{station.total_capacity}</td>
+                      <td>{station.address}</td>
+                      <td>{formatOperatingHours(station.operating_hours)}</td>
+                      <td>
+                        <span className={`status-badge status-${station.status}`}>
+                          {station.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn-icon" onClick={() => { setEditingStation(station); setShowModal(true) }}>
+                          Edit
+                        </button>
+                        <button className="btn-icon" onClick={() => handleDelete(station.station_id)}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -180,7 +202,18 @@ export default function StationsPage() {
                 </div>
                 <div className="form-group">
                   <label>Operating Hours</label>
-                  <input name="operatingHours" defaultValue={editingStation?.operating_hours || '24/7'} required />
+                  <input
+                    name="operatingHours"
+                    placeholder="e.g., 06:00 - 22:00 or 24/7"
+                    defaultValue={
+                      editingStation?.operating_hours
+                        ? typeof editingStation.operating_hours === 'string'
+                          ? editingStation.operating_hours
+                          : `${editingStation.operating_hours.open} - ${editingStation.operating_hours.close}`
+                        : '06:00 - 22:00'
+                    }
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label>Status</label>

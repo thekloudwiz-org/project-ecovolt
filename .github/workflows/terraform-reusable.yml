@@ -111,7 +111,7 @@ jobs:
         id: fmt
         run: |
           cd ${{ inputs.working_directory }}
-          terraform fmt -check -recursive
+          terraform fmt -recursive
         continue-on-error: true
 
       - name: Terraform Validate

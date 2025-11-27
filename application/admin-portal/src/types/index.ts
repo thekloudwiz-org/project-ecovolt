@@ -32,11 +32,17 @@ export interface Station {
   longitude: number
   total_capacity: number
   status: 'active' | 'inactive' | 'maintenance'
-  operating_hours?: string
-  amenities?: string
-  pricing?: string
+  operating_hours?: {
+    open: string
+    close: string
+  } | string
+  amenities?: string[] | string
+  pricing?: {
+    currency: string
+    swap_fee: number
+  } | string
   created_at: string
-  updated_at?: string
+  updated_at?: string | null
 }
 
 export interface StationFormData {

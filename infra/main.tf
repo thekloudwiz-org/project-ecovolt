@@ -71,7 +71,7 @@ module "dynamodb" {
 
   # TTL settings
   enable_bike_status_ttl = var.enable_bike_status_ttl
-  enable_swap_events_ttl    = var.enable_swap_events_ttl
+  enable_swap_events_ttl = var.enable_swap_events_ttl
 
   tags = local.common_tags
 }
@@ -146,11 +146,11 @@ module "compute" {
   vpc_id             = module.networking.vpc_id
   private_subnet_ids = module.networking.private_subnet_ids
 
-  db_endpoint          = module.database.db_address # Use address (hostname only) instead of endpoint (hostname:port)
-  db_name              = module.database.db_name
-  db_security_group_id = module.database.db_security_group_id
-  db_secret_arn        = module.database.db_secret_arn
-  kinesis_stream_arn   = module.analytics.kinesis_stream_arn
+  db_endpoint             = module.database.db_address # Use address (hostname only) instead of endpoint (hostname:port)
+  db_name                 = module.database.db_name
+  db_security_group_id    = module.database.db_security_group_id
+  db_secret_arn           = module.database.db_secret_arn
+  kinesis_stream_arn      = module.analytics.kinesis_stream_arn
   cognito_admin_client_id = module.cognito.admin_portal_client_id
 
   lambda_runtime      = var.lambda_runtime

@@ -86,7 +86,7 @@ output "all_table_names" {
   value = {
     stations          = aws_dynamodb_table.stations.name
     user_profiles     = aws_dynamodb_table.user_profiles.name
-    bike_status    = aws_dynamodb_table.bike_status.name
+    bike_status       = aws_dynamodb_table.bike_status.name
     battery_inventory = aws_dynamodb_table.battery_inventory.name
     swap_events       = aws_dynamodb_table.swap_events.name
   }
