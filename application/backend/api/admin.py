@@ -1681,6 +1681,8 @@ def list_users(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     Requirements: 8.1
     """
+    print(f"[list_users] CALLED - event keys: {list(event.keys())}")
+    print(f"[list_users] queryStringParameters: {event.get('queryStringParameters')}")
     try:
         # Get authenticated user
         user = event.get('user')
