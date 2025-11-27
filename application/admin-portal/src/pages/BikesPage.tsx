@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBikes, createBike, updateBike, assignBike, unassignBike } from '../services/api'
+import { getBikes, createBike, updateBike, assignBike, unassignBike, getUsers } from '../services/api'
 import type { Bike, BikeFormData } from '../types'
+import MessageModal from '../components/MessageModal'
 import './BikesPage.css'
 
 export default function BikesPage() {
@@ -13,11 +14,18 @@ export default function BikesPage() {
   const [selectedBike, setSelectedBike] = useState<Bike | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [assignmentFilter, setAssignmentFilter] = useState<string>('all')
+  const [messageModal, setMessageModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Fetch bikes
   const { data, isLoading, error } = useQuery({
     queryKey: ['bikes', page],
     queryFn: () => getBikes(page, 20),
+  })
+
+  // Fetch users for assignment dropdown
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => getUsers(1, 1000), // Fetch all users
   })
 
   // Create bike mutation
@@ -49,10 +57,18 @@ export default function BikesPage() {
       queryClient.invalidateQueries({ queryKey: ['bikes'] })
       setShowAssignModal(false)
       setSelectedBike(null)
-      alert('Bike assigned successfully!')
+      setMessageModal({
+        type: 'success',
+        message: 'Bike has been successfully assigned to the user!'
+      })
     },
     onError: (error: Error) => {
-      alert(`Failed to assign bike: ${error.message}`)
+      setShowAssignModal(false)
+      setSelectedBike(null)
+      setMessageModal({
+        type: 'error',
+        message: error.message || 'Failed to assign bike. Please try again.'
+      })
     },
   })
 
@@ -61,10 +77,16 @@ export default function BikesPage() {
     mutationFn: (bikeId: string) => unassignBike(bikeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bikes'] })
-      alert('Bike unassigned successfully!')
+      setMessageModal({
+        type: 'success',
+        message: 'Bike has been successfully unassigned!'
+      })
     },
     onError: (error: Error) => {
-      alert(`Failed to unassign bike: ${error.message}`)
+      setMessageModal({
+        type: 'error',
+        message: error.message || 'Failed to unassign bike. Please try again.'
+      })
     },
   })
 
@@ -376,16 +398,51 @@ export default function BikesPage() {
             </div>
             <form onSubmit={handleAssign}>
               <div className="form-group">
-                <label htmlFor="user_id">User ID *</label>
-                <input
-                  type="text"
+                <label htmlFor="user_id">Select User *</label>
+                <select
                   id="user_id"
                   name="user_id"
-                  defaultValue={selectedBike.user_id || ''}
                   required
-                  placeholder="Enter user ID"
-                />
-                <small>Enter the user ID to assign this bike to</small>
+                  style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                >
+                  <option value="">-- Select a user --</option>
+
+                  {/* Unassigned Users */}
+                  {usersData?.users && (() => {
+                    const assignedUserIds = new Set(
+                      data?.bikes?.filter(b => b.user_id && b.status === 'active').map(b => b.user_id) || []
+                    )
+                    const unassignedUsers = usersData.users.filter(u => !assignedUserIds.has(u.user_id))
+                    const assignedUsers = usersData.users.filter(u => assignedUserIds.has(u.user_id))
+
+                    return (
+                      <>
+                        {unassignedUsers.length > 0 && (
+                          <optgroup label="📗 Available Users (No Active Bike)">
+                            {unassignedUsers.map(user => (
+                              <option key={user.user_id} value={user.user_id}>
+                                {user.email} - {user.full_name || 'No name'}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {assignedUsers.length > 0 && (
+                          <optgroup label="📕 Already Assigned (Has Active Bike)">
+                            {assignedUsers.map(user => (
+                              <option key={user.user_id} value={user.user_id}>
+                                {user.email} - {user.full_name || 'No name'}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </>
+                    )
+                  })()}
+                </select>
+                <small style={{ color: '#666', marginTop: '8px', display: 'block' }}>
+                  Users with active bikes will be prevented from receiving another bike
+                </small>
               </div>
               <div className="modal-actions">
                 <button
@@ -403,14 +460,18 @@ export default function BikesPage() {
                   {assignMutation.isPending ? 'Assigning...' : 'Assign Bike'}
                 </button>
               </div>
-              {assignMutation.error && (
-                <div className="error-message">
-                  Error: {assignMutation.error.message}
-                </div>
-              )}
             </form>
           </div>
         </div>
+      )}
+
+      {/* Message Modal */}
+      {messageModal && (
+        <MessageModal
+          type={messageModal.type}
+          message={messageModal.message}
+          onClose={() => setMessageModal(null)}
+        />
       )}
     </div>
   )

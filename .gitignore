@@ -65,6 +65,8 @@ yarn.lock
 *~
 .kiro/settings/
 .kiro/cache/
+.kiro/*
+.kiro
 
 # OS files
 .DS_Store

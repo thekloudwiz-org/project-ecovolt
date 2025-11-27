@@ -158,13 +158,33 @@ export const updateBike = async (id: string, data: Partial<BikeFormData>): Promi
 
 export const assignBike = async (id: string, userId: string): Promise<Bike> => {
   const headers = await getAuthHeaders()
-  const response = await put({
-    apiName: API_NAME,
-    path: `/admin/bikes/${id}/assign`,
-    options: { headers, body: { user_id: userId } as any },
-  }).response
-  const result = await response.body.json()
-  return (result as any).bike as Bike
+  try {
+    const response = await put({
+      apiName: API_NAME,
+      path: `/admin/bikes/${id}/assign`,
+      options: { headers, body: { user_id: userId } as any },
+    }).response
+    const result = await response.body.json()
+
+    // Check if response contains an error
+    if ((result as any).error) {
+      throw new Error((result as any).details || (result as any).error)
+    }
+
+    return (result as any).bike as Bike
+  } catch (error: any) {
+    // Parse error from response
+    if (error.response?.body) {
+      try {
+        const errorBody = JSON.parse(await error.response.body.text())
+        throw new Error(errorBody.details || errorBody.error || 'Failed to assign bike')
+      } catch (parseError) {
+        // If parsing fails, use the original error message
+        throw new Error(error.message || 'Failed to assign bike')
+      }
+    }
+    throw new Error(error.message || 'Failed to assign bike')
+  }
 }
 
 export const unassignBike = async (id: string): Promise<Bike> => {
