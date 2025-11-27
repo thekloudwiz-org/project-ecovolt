@@ -164,6 +164,8 @@ jobs:
           framework: terraform
           soft_fail: true
           output_format: cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   terraform-plan:
     name: Plan (${{ inputs.environment }})
