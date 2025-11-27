@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBikes, createBike, updateBike, assignBike } from '../services/api'
+import { getBikes, createBike, updateBike, assignBike, unassignBike } from '../services/api'
 import type { Bike, BikeFormData } from '../types'
 import './BikesPage.css'
 
@@ -49,19 +49,37 @@ export default function BikesPage() {
       queryClient.invalidateQueries({ queryKey: ['bikes'] })
       setShowAssignModal(false)
       setSelectedBike(null)
+      alert('Bike assigned successfully!')
+    },
+    onError: (error: Error) => {
+      alert(`Failed to assign bike: ${error.message}`)
+    },
+  })
+
+  // Unassign bike mutation
+  const unassignMutation = useMutation({
+    mutationFn: (bikeId: string) => unassignBike(bikeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bikes'] })
+      alert('Bike unassigned successfully!')
+    },
+    onError: (error: Error) => {
+      alert(`Failed to unassign bike: ${error.message}`)
     },
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const data: BikeFormData = {
+    const data: any = {
       bike_id: formData.get('bike_id') as string,
       model: formData.get('model') as string,
       battery_id: formData.get('battery_id') as string || undefined,
     }
 
+    // Include status when editing
     if (editingBike) {
+      data.status = formData.get('status') as string
       updateMutation.mutate({ id: editingBike.bike_id, data })
     } else {
       createMutation.mutate(data)
@@ -86,6 +104,12 @@ export default function BikesPage() {
   const openAssignModal = (bike: Bike) => {
     setSelectedBike(bike)
     setShowAssignModal(true)
+  }
+
+  const handleUnassign = (bike: Bike) => {
+    if (confirm(`Are you sure you want to unassign ${bike.bike_id}?`)) {
+      unassignMutation.mutate(bike.bike_id)
+    }
   }
 
   const closeModal = () => {
@@ -208,9 +232,26 @@ export default function BikesPage() {
                     <button className="btn-icon" onClick={() => openEditModal(bike)}>
                       Edit
                     </button>
-                    <button className="btn-icon" onClick={() => openAssignModal(bike)}>
-                      Assign
-                    </button>
+                    {bike.status === 'active' && !bike.user_id && (
+                      <button className="btn-icon" onClick={() => openAssignModal(bike)}>
+                        Assign
+                      </button>
+                    )}
+                    {bike.user_id && (
+                      <button className="btn-icon" onClick={() => handleUnassign(bike)}>
+                        Unassign
+                      </button>
+                    )}
+                    {bike.status !== 'active' && (
+                      <button
+                        className="btn-icon"
+                        disabled
+                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                        title={`Cannot assign ${bike.status} bike`}
+                      >
+                        Assign
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

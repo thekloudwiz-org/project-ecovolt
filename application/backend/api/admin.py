@@ -1330,23 +1330,27 @@ def update_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Parse request body
         body = json.loads(event.get('body', '{}'))
-        
+
         # Build dynamic update query
         update_fields = []
         update_values = []
-        
+
         if 'model' in body:
             update_fields.append('model = %s')
             update_values.append(body['model'])
-        
+
         if 'status' in body:
             update_fields.append('status = %s')
             update_values.append(body['status'])
-        
+
+            # Auto-unassign bike if status changes from active to inactive/maintenance
+            if body['status'] in ['inactive', 'maintenance']:
+                update_fields.append('user_id = NULL')
+
         if 'battery_id' in body:
             update_fields.append('battery_id = %s')
             update_values.append(body['battery_id'])
-        
+
         if not update_fields:
             return {
                 'statusCode': 400,
@@ -1354,17 +1358,17 @@ def update_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'error': 'No fields to update'
                 })
             }
-        
+
         update_fields.append('updated_at = NOW()')
         update_values.append(bike_id)
-        
+
         query = f"""
-            UPDATE bikes 
+            UPDATE bikes
             SET {', '.join(update_fields)}
             WHERE bike_id = %s
             RETURNING *
         """
-        
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, update_values)
@@ -1467,11 +1471,11 @@ def assign_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Requirement 10.3: Update bike's user_id field
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            
+
             # Verify user exists
             cursor.execute(Queries.GET_USER_BY_ID, (user_id,))
             user_record = cursor.fetchone()
-            
+
             if not user_record:
                 return {
                     'statusCode': 404,
@@ -1480,11 +1484,59 @@ def assign_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'details': f'User {user_id} does not exist'
                     })
                 }
-            
+
+            # Check if user already has an active bike assigned
+            cursor.execute(
+                """
+                SELECT bike_id, model
+                FROM bikes
+                WHERE user_id = %s AND status = 'active'
+                """,
+                (user_id,)
+            )
+            existing_bike = cursor.fetchone()
+
+            if existing_bike:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({
+                        'error': 'User already has an active bike assigned',
+                        'details': f'User {user_id} is already assigned bike {existing_bike["bike_id"]} ({existing_bike["model"]}). Please unassign or deactivate the existing bike first.'
+                    })
+                }
+
+            # Verify bike is active and not already assigned
+            cursor.execute(
+                """
+                SELECT bike_id, status, user_id
+                FROM bikes
+                WHERE bike_id = %s
+                """,
+                (bike_id,)
+            )
+            bike_check = cursor.fetchone()
+
+            if not bike_check:
+                return {
+                    'statusCode': 404,
+                    'body': json.dumps({
+                        'error': 'Bike not found'
+                    })
+                }
+
+            if bike_check['status'] != 'active':
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({
+                        'error': 'Cannot assign inactive bike',
+                        'details': f'Bike status is "{bike_check["status"]}". Only active bikes can be assigned.'
+                    })
+                }
+
             # Assign bike to user
             cursor.execute(
                 """
-                UPDATE bikes 
+                UPDATE bikes
                 SET user_id = %s, updated_at = NOW()
                 WHERE bike_id = %s
                 RETURNING *
@@ -1533,6 +1585,93 @@ def assign_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
         }
 
+
+def unassign_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    PUT /admin/bikes/{id}/unassign
+    Unassign bike from user
+
+    Requirements: 10.3
+    """
+    try:
+        # Get authenticated user
+        user = event.get('user')
+        if not user:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({
+                    'error': 'Unauthorized',
+                    'details': 'Authentication required'
+                })
+            }
+
+        # Verify admin role
+        if not check_admin_role(user):
+            return {
+                'statusCode': 403,
+                'body': json.dumps({
+                    'error': 'Forbidden',
+                    'details': 'Admin access required'
+                })
+            }
+
+        # Get bike ID from path
+        bike_id = event.get('pathParameters', {}).get('id')
+        if not bike_id:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Missing bike ID'
+                })
+            }
+
+        # Unassign bike
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                UPDATE bikes
+                SET user_id = NULL, updated_at = NOW()
+                WHERE bike_id = %s
+                RETURNING *
+                """,
+                (bike_id,)
+            )
+            bike = cursor.fetchone()
+
+        if not bike:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({
+                    'error': 'Bike not found'
+                })
+            }
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'Bike unassigned successfully',
+                'bike': {
+                    'bike_id': bike['bike_id'],
+                    'user_id': bike['user_id'],
+                    'model': bike['model'],
+                    'status': bike['status']
+                }
+            })
+        }
+
+    except Exception as e:
+        print(f"Error unassigning bike: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': 'Internal server error',
+                'message': str(e) if os.getenv('ENVIRONMENT') == 'dev' else 'An error occurred'
+            })
+        }
 
 
 def list_users(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

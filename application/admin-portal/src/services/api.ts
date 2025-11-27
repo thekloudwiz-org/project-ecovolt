@@ -167,6 +167,17 @@ export const assignBike = async (id: string, userId: string): Promise<Bike> => {
   return (result as any).bike as Bike
 }
 
+export const unassignBike = async (id: string): Promise<Bike> => {
+  const headers = await getAuthHeaders()
+  const response = await put({
+    apiName: API_NAME,
+    path: `/admin/bikes/${id}/unassign`,
+    options: { headers, body: {} as any },
+  }).response
+  const result = await response.body.json()
+  return (result as any).bike as Bike
+}
+
 // Users
 export const getUsers = async (page = 1, pageSize = 20) => {
   try {

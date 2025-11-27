@@ -60,7 +60,8 @@ ROUTES = {
     'POST /admin/bikes': admin.register_bike,
     'PUT /admin/bikes/{id}': admin.update_bike,
     'PUT /admin/bikes/{id}/assign': admin.assign_bike,
-    
+    'PUT /admin/bikes/{id}/unassign': admin.unassign_bike,
+
     # Admin user management routes
     'GET /admin/users': admin.list_users,
     'GET /admin/users/{id}': admin.get_user_details,
