@@ -1,6 +1,13 @@
-# EcoVolt IoT Simulator
+# EcoVolt Scripts
 
-This directory contains scripts for simulating EcoVolt IoT devices and testing the infrastructure.
+This directory contains essential scripts for the EcoVolt infrastructure.
+
+## Scripts Overview
+
+- **`iot_simulator.py`** - IoT device simulator for testing
+- **`empty-s3-bucket.py`** - S3 bucket cleanup (used by Terraform)
+
+---
 
 ## IoT Device Simulator
 
@@ -230,3 +237,48 @@ The simulator publishes to topics that match the IoT Rules defined in the infras
 - `ecovolt/stations/+/swap` → Kinesis → Lambda → Timestream
 
 All data flows through the analytics pipeline for processing and storage.
+
+
+---
+
+## S3 Bucket Cleanup Script
+
+### `empty-s3-bucket.py`
+
+This script is used by Terraform to empty S3 buckets before deletion. It's automatically invoked during `terraform destroy`.
+
+**Usage (via Terraform):**
+```terraform
+provisioner "local-exec" {
+  when    = destroy
+  command = "python3 ${path.root}/scripts/empty-s3-bucket.py ${self.triggers.bucket_name}"
+}
+```
+
+**Manual Usage:**
+```bash
+python3 scripts/empty-s3-bucket.py bucket-name
+```
+
+---
+
+## Notes
+
+### Script Cleanup (November 2025)
+
+This directory was cleaned up to maintain a lean codebase. The following types of scripts were removed:
+
+- **Deployment scripts** - Replaced by CI/CD workflows
+- **Test scripts** - Moved to proper test framework in `application/backend/tests/`
+- **Setup scripts** - One-time use, no longer needed
+- **Migration scripts** - Handled by Lambda `db_migrator` function
+- **JWK fetch scripts** - Replaced by Terraform `external` data source
+
+### CI/CD First Approach
+
+All deployment, testing, and infrastructure management is now handled through:
+- **GitHub Actions workflows** (`.github/workflows/`)
+- **Terraform automation** (`infra/`)
+- **Lambda functions** (for runtime operations)
+
+Manual scripts are kept to a minimum to ensure consistency and reliability.

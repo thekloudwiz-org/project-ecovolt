@@ -82,3 +82,16 @@ output "customer_user_pool_arn_for_authorizer" {
   description = "ARN to use for API Gateway Cognito authorizer"
   value       = aws_cognito_user_pool.customers.arn
 }
+
+# JWKS JSON for JWT verification (fetched automatically by Terraform)
+output "customer_user_pool_jwks_json" {
+  description = "JWKS JSON for verifying JWT tokens from customer user pool"
+  value       = data.http.customer_jwks.response_body
+  sensitive   = false
+}
+
+output "admin_user_pool_jwks_json" {
+  description = "JWKS JSON for verifying JWT tokens from admin user pool (if created)"
+  value       = var.create_separate_admin_pool ? data.http.admin_jwks[0].response_body : null
+  sensitive   = false
+}

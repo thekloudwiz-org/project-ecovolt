@@ -162,6 +162,8 @@ module "compute" {
   cognito_user_pool_arn     = module.cognito.customer_user_pool_arn_for_authorizer
   cognito_user_pool_id      = module.cognito.customer_user_pool_id
   cognito_client_id         = module.cognito.mobile_app_client_id
+  cognito_jwks_json         = module.cognito.customer_user_pool_jwks_json
+  cognito_admin_jwks_json   = module.cognito.admin_user_pool_jwks_json
 
   # DynamoDB integration
   dynamodb_table_arns  = module.dynamodb.all_table_arns

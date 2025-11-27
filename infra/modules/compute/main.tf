@@ -380,7 +380,7 @@ resource "aws_lambda_function" "api_handler" {
       COGNITO_USER_POOL_ID         = var.cognito_user_pool_id
       COGNITO_APP_CLIENT_ID        = var.cognito_client_id
       COGNITO_ADMIN_CLIENT_ID      = var.cognito_admin_client_id
-      COGNITO_JWK_KEYS             = file("${path.module}/../../../cognito_jwk_keys.json")
+      COGNITO_JWK_KEYS             = var.cognito_jwks_json
       DYNAMODB_BATTERIES_TABLE     = lookup(var.dynamodb_table_names, "battery_inventory", "${var.environment}-batteries")
       DYNAMODB_TELEMETRY_TABLE     = lookup(var.dynamodb_table_names, "bike_status", "${var.environment}-bike-status")
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"
@@ -402,8 +402,7 @@ resource "aws_lambda_function" "api_handler" {
   lifecycle {
     ignore_changes = [
       filename,
-      source_code_hash,
-      last_modified
+      source_code_hash
     ]
   }
 
@@ -476,8 +475,7 @@ resource "aws_lambda_function" "iot_processor" {
   lifecycle {
     ignore_changes = [
       filename,
-      source_code_hash,
-      last_modified
+      source_code_hash
     ]
   }
 

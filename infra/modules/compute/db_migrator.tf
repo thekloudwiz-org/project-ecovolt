@@ -59,8 +59,7 @@ resource "aws_lambda_function" "db_migrator" {
   lifecycle {
     ignore_changes = [
       filename,
-      source_code_hash,
-      last_modified
+      source_code_hash
     ]
   }
 

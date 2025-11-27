@@ -237,6 +237,18 @@ variable "cognito_admin_client_id" {
   type        = string
 }
 
+variable "cognito_jwks_json" {
+  description = "Cognito JWKS JSON for JWT token verification (fetched from Cognito User Pool)"
+  type        = string
+  default     = ""
+}
+
+variable "cognito_admin_jwks_json" {
+  description = "Cognito Admin JWKS JSON for JWT token verification (if separate admin pool is created)"
+  type        = string
+  default     = ""
+}
+
 variable "iot_endpoint" {
   description = "AWS IoT Core endpoint for device communication"
   type        = string

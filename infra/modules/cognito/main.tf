@@ -1,6 +1,9 @@
 # Amazon Cognito User Pools Module
 # Provides user authentication for mobile app and admin portal
 
+# Data sources
+data "aws_region" "current" {}
+
 # Customer User Pool
 resource "aws_cognito_user_pool" "customers" {
   name = "${var.project_name}-${var.environment}-customers"
@@ -362,4 +365,27 @@ resource "aws_cloudwatch_log_group" "cognito" {
   retention_in_days = var.log_retention_days
 
   tags = var.tags
+}
+
+# Fetch JWKS JSON from Customer User Pool
+data "http" "customer_jwks" {
+  url = "https://cognito-idp.${data.aws_region.current.name}.amazonaws.com/${aws_cognito_user_pool.customers.id}/.well-known/jwks.json"
+
+  request_headers = {
+    Accept = "application/json"
+  }
+
+  depends_on = [aws_cognito_user_pool.customers]
+}
+
+# Fetch JWKS JSON from Admin User Pool (if created)
+data "http" "admin_jwks" {
+  count = var.create_separate_admin_pool ? 1 : 0
+  url   = "https://cognito-idp.${data.aws_region.current.name}.amazonaws.com/${aws_cognito_user_pool.admins[0].id}/.well-known/jwks.json"
+
+  request_headers = {
+    Accept = "application/json"
+  }
+
+  depends_on = [aws_cognito_user_pool.admins]
 }

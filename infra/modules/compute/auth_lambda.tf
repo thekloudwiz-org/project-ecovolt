@@ -36,6 +36,7 @@ resource "aws_lambda_function" "auth_handler" {
       COGNITO_USER_POOL_ID    = var.cognito_user_pool_id
       COGNITO_APP_CLIENT_ID   = var.cognito_client_id
       COGNITO_ADMIN_CLIENT_ID = var.cognito_admin_client_id
+      COGNITO_JWK_KEYS        = var.cognito_jwks_json
       LOG_LEVEL               = "INFO"
     }
   }
