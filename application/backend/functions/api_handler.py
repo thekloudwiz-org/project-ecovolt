@@ -81,6 +81,52 @@ PUBLIC_ROUTES = [
 ]
 
 
+def match_route(http_method: str, path: str, routes: Dict[str, Any]) -> tuple:
+    """
+    Match incoming request to a route pattern with path parameters
+
+    Args:
+        http_method: HTTP method (GET, POST, PUT, DELETE)
+        path: Request path (e.g., /admin/stations/STN-123)
+        routes: Dictionary of route patterns
+
+    Returns:
+        Tuple of (handler_function, path_parameters, route_key) or (None, None, None)
+    """
+    import re
+
+    # First try exact match
+    route_key = f"{http_method} {path}"
+    if route_key in routes:
+        return routes[route_key], {}, route_key
+
+    # Try pattern matching for parameterized routes
+    for route_pattern, handler_func in routes.items():
+        # Extract method and path pattern
+        pattern_parts = route_pattern.split(' ', 1)
+        if len(pattern_parts) != 2:
+            continue
+
+        pattern_method, pattern_path = pattern_parts
+
+        # Check if method matches
+        if pattern_method != http_method:
+            continue
+
+        # Convert route pattern to regex
+        # Replace {id} with named capture group
+        regex_pattern = re.sub(r'\{(\w+)\}', r'(?P<\1>[^/]+)', pattern_path)
+        regex_pattern = f"^{regex_pattern}$"
+
+        # Try to match
+        match = re.match(regex_pattern, path)
+        if match:
+            path_params = match.groupdict()
+            return handler_func, path_params, route_pattern
+
+    return None, None, None
+
+
 def generate_correlation_id() -> str:
     """Generate a unique correlation ID for request tracking"""
     import uuid
@@ -116,19 +162,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Extract request details
         http_method = event.get('httpMethod', '')
         path = event.get('path', '')
-        route_key = f"{http_method} {path}"
-        
+
         # Requirement 14.2: Structured logging with correlation ID
         print(json.dumps({
             'correlation_id': correlation_id,
             'event': 'request_received',
             'method': http_method,
             'path': path,
-            'route_key': route_key,
             'source_ip': event.get('requestContext', {}).get('identity', {}).get('sourceIp'),
             'user_agent': event.get('headers', {}).get('User-Agent')
         }))
-        
+
         # Handle OPTIONS for CORS preflight
         if http_method == 'OPTIONS':
             return {
@@ -136,14 +180,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'headers': headers,
                 'body': ''
             }
-        
-        # Check if route exists
-        handler_func = ROUTES.get(route_key)
+
+        # Match route pattern and extract path parameters
+        handler_func, path_params, route_key = match_route(http_method, path, ROUTES)
+
         if not handler_func:
             print(json.dumps({
                 'correlation_id': correlation_id,
                 'event': 'route_not_found',
-                'route_key': route_key
+                'method': http_method,
+                'path': path
             }))
             return {
                 'statusCode': 404,
@@ -153,7 +199,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'correlation_id': correlation_id
                 })
             }
-        
+
+        # Add path parameters to event
+        if path_params:
+            if 'pathParameters' not in event:
+                event['pathParameters'] = {}
+            event['pathParameters'].update(path_params)
+
         # Requirement 1.4: Authentication middleware
         if route_key not in PUBLIC_ROUTES:
             # Get authorization header (case-insensitive)
