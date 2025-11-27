@@ -252,8 +252,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Terraform for infrastructure as code
 - React Native and React communities
 - The open-source community
+- [Anthropic Claude](https://claude.ai) for AI-assisted development
 
 ---
 
-**Built with ❤️ for sustainable transportation in Ghana** 🇰🇪
+**Built with ❤️ for sustainable transportation in Ghana** 🇬🇭
 
