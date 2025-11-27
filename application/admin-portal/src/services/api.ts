@@ -70,13 +70,27 @@ export const getStations = async (page = 1, pageSize = 20) => {
 
 export const createStation = async (data: StationFormData): Promise<Station> => {
   const headers = await getAuthHeaders()
-  const response = await post({
-    apiName: API_NAME,
-    path: '/admin/stations',
-    options: { headers, body: data as any },
-  }).response
-  const result = await response.body.json()
-  return (result as any).station as Station
+  try {
+    const response = await post({
+      apiName: API_NAME,
+      path: '/admin/stations',
+      options: { headers, body: data as any },
+    }).response
+    const result = await response.body.json()
+
+    // Check if response contains an error
+    if ((result as any).error) {
+      throw new Error((result as any).details || (result as any).error)
+    }
+
+    return (result as any).station as Station
+  } catch (error: any) {
+    // Re-throw with better error message
+    const errorMessage = error.response?.body
+      ? JSON.parse(await error.response.body.text()).details || JSON.parse(await error.response.body.text()).error
+      : error.message
+    throw new Error(errorMessage || 'Failed to create station')
+  }
 }
 
 export const updateStation = async (id: string, data: Partial<StationFormData>): Promise<Station> => {

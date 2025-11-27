@@ -22,6 +22,10 @@ export default function StationsPage() {
       queryClient.invalidateQueries({ queryKey: ['stations'] })
       setShowModal(false)
       setEditingStation(null)
+      alert('Station created successfully!')
+    },
+    onError: (error: Error) => {
+      alert(`Failed to create station: ${error.message}`)
     },
   })
 
@@ -199,11 +203,31 @@ export default function StationsPage() {
                 </div>
                 <div className="form-group">
                   <label>Latitude</label>
-                  <input name="latitude" type="number" step="0.000001" defaultValue={editingStation?.latitude} required />
+                  <input
+                    name="latitude"
+                    type="number"
+                    step="0.000001"
+                    min="-90"
+                    max="90"
+                    placeholder="e.g., 5.6037 (Accra)"
+                    defaultValue={editingStation?.latitude}
+                    required
+                  />
+                  <small style={{ color: '#666', fontSize: '12px' }}>Valid range: -90 to 90 (Accra ≈ 5.6037)</small>
                 </div>
                 <div className="form-group">
                   <label>Longitude</label>
-                  <input name="longitude" type="number" step="0.000001" defaultValue={editingStation?.longitude} required />
+                  <input
+                    name="longitude"
+                    type="number"
+                    step="0.000001"
+                    min="-180"
+                    max="180"
+                    placeholder="e.g., -0.1870 (Accra)"
+                    defaultValue={editingStation?.longitude}
+                    required
+                  />
+                  <small style={{ color: '#666', fontSize: '12px' }}>Valid range: -180 to 180 (Accra ≈ -0.1870)</small>
                 </div>
                 <div className="form-group">
                   <label>Capacity</label>
