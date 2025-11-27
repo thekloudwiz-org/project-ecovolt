@@ -52,9 +52,15 @@ export interface StationFormData {
   latitude: number
   longitude: number
   total_capacity: number
-  operating_hours?: string
-  amenities?: string
-  pricing?: string
+  operating_hours?: {
+    open: string
+    close: string
+  } | string
+  amenities?: string[] | string
+  pricing?: {
+    currency: string
+    swap_fee: number
+  } | string
 }
 
 // Bike Types
