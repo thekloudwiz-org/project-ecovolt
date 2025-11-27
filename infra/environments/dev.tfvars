@@ -54,7 +54,7 @@ create_cognito_identity_pool     = false
 # DynamoDB - On-demand for dev
 dynamodb_billing_mode     = "PAY_PER_REQUEST"
 enable_dynamodb_pitr      = false
-enable_vehicle_status_ttl = false
+enable_bike_status_ttl = false
 enable_swap_events_ttl    = true
 
 # WAF - Basic protection for dev

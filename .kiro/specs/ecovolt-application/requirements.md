@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document specifies the requirements for the EcoVolt Application Suite, consisting of a mobile application for riders, an admin web portal for operations management, and a backend API service. The system SHALL enable battery swapping operations, user management, payment processing, real-time device monitoring, and business analytics for EcoVolt Mobility's electric vehicle battery swapping network in Ghana.
+This document specifies the requirements for the EcoVolt Application Suite, consisting of a mobile application for riders, an admin web portal for operations management, and a backend API service. The system SHALL enable battery swapping operations, user management, payment processing, real-time device monitoring, and business analytics for EcoVolt Mobility's electric bike battery swapping network in Ghana.
 
 ## Glossary
 

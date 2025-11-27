@@ -80,7 +80,7 @@ Security groups enforce least-privilege access between tiers, and network ACLs p
 - **Device Jobs**: Coordinate remote operations across device fleets (configuration updates, diagnostics)
 
 **Message Routing**: IoT Core Rules Engine routes incoming messages based on MQTT topics:
-- `ecovolt/vehicles/{vehicleId}/telemetry` → Vehicle telemetry processing via Kinesis
+- `ecovolt/bikes/{bikeId}/telemetry` → bike telemetry processing via Kinesis
 - `ecovolt/stations/{stationId}/energy` → Energy monitoring pipeline via Kinesis
 - `ecovolt/stations/{stationId}/swap` → Battery swap event processing via Kinesis
 
@@ -107,7 +107,7 @@ Security groups enforce least-privilege access between tiers, and network ACLs p
 
 ### Data Architecture
 
-**Relational Data**: Amazon RDS PostgreSQL Multi-AZ deployment stores transactional data including user accounts, vehicle registrations, and station configurations. Automated backups enable point-in-time recovery.
+**Relational Data**: Amazon RDS PostgreSQL Multi-AZ deployment stores transactional data including user accounts, bike registrations, and station configurations. Automated backups enable point-in-time recovery.
 
 **Time-Series Data**: Amazon Timestream stores telemetry data with automatic data lifecycle management. Data older than 30 days moves to magnetic storage tier for cost optimization.
 
@@ -272,7 +272,7 @@ Security groups enforce least-privilege access between tiers, and network ACLs p
 - `device_management_role_arn`: IAM role ARN for device management operations
 
 **Resources**:
-- IoT Thing Type definitions (vehicle, station, battery)
+- IoT Thing Type definitions (bike, station, battery)
 - IoT Policy for device permissions
 - IoT Rules for message routing to Kinesis
 - IoT Fleet Indexing configuration
@@ -418,7 +418,7 @@ Security groups enforce least-privilege access between tiers, and network ACLs p
 ```json
 {
   "thingName": "string",
-  "thingType": "vehicle | station",
+  "thingType": "bike | station",
   "attributes": {
     "model": "string",
     "manufacturer": "string",
@@ -430,11 +430,11 @@ Security groups enforce least-privilege access between tiers, and network ACLs p
 }
 ```
 
-### Vehicle Telemetry Message
+### bike Telemetry Message
 
 ```json
 {
-  "vehicleId": "string",
+  "bikeId": "string",
   "timestamp": "ISO8601 timestamp",
   "location": {
     "latitude": "number",
@@ -483,7 +483,7 @@ Security groups enforce least-privilege access between tiers, and network ACLs p
 {
   "swapId": "string",
   "stationId": "string",
-  "vehicleId": "string",
+  "bikeId": "string",
   "timestamp": "ISO8601 timestamp",
   "removedBatteryId": "string",
   "installedBatteryId": "string",
@@ -506,10 +506,10 @@ CREATE TABLE users (
 );
 ```
 
-**Vehicles Table**:
+**bikes Table**:
 ```sql
-CREATE TABLE vehicles (
-  vehicle_id VARCHAR(50) PRIMARY KEY,
+CREATE TABLE bikes (
+  bike_id VARCHAR(50) PRIMARY KEY,
   user_id UUID REFERENCES users(user_id),
   model VARCHAR(100) NOT NULL,
   vin VARCHAR(17) UNIQUE NOT NULL,
@@ -536,7 +536,7 @@ CREATE TABLE stations (
 CREATE TABLE swap_events (
   swap_id UUID PRIMARY KEY,
   station_id VARCHAR(50) REFERENCES stations(station_id),
-  vehicle_id VARCHAR(50) REFERENCES vehicles(vehicle_id),
+  bike_id VARCHAR(50) REFERENCES bikes(bike_id),
   user_id UUID REFERENCES users(user_id),
   removed_battery_id VARCHAR(50),
   installed_battery_id VARCHAR(50),

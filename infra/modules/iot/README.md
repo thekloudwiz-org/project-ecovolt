@@ -142,9 +142,9 @@ aws iot create-thing \
 # Create and attach certificate
 aws iot create-keys-and-certificate \
   --set-as-active \
-  --certificate-pem-outfile vehicle-001-cert.pem \
-  --public-key-outfile vehicle-001-public.key \
-  --private-key-outfile vehicle-001-private.key
+  --certificate-pem-outfile bike-001-cert.pem \
+  --public-key-outfile bike-001-public.key \
+  --private-key-outfile bike-001-private.key
 
 # Attach policy to certificate
 aws iot attach-policy \

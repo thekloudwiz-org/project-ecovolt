@@ -46,14 +46,14 @@ variable "users_write_capacity" {
   default     = 5
 }
 
-variable "vehicle_status_read_capacity" {
-  description = "Read capacity units for vehicle status table"
+variable "bike_status_read_capacity" {
+  description = "Read capacity units for bike status table"
   type        = number
   default     = 10
 }
 
-variable "vehicle_status_write_capacity" {
-  description = "Write capacity units for vehicle status table"
+variable "bike_status_write_capacity" {
+  description = "Write capacity units for bike status table"
   type        = number
   default     = 10
 }
@@ -121,8 +121,8 @@ variable "enable_point_in_time_recovery" {
 }
 
 # TTL settings
-variable "enable_vehicle_status_ttl" {
-  description = "Enable TTL for vehicle status table (auto-delete old records)"
+variable "enable_bike_status_ttl" {
+  description = "Enable TTL for bike status table (auto-delete old records)"
   type        = bool
   default     = false
 }

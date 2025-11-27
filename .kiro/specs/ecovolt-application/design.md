@@ -494,7 +494,7 @@ CREATE TABLE wallet_transactions (
   - created_at (String, ISO timestamp)
 - GSI: `status-index` (status, charge_level)
 
-**Vehicle Telemetry Table:**
+**bike Telemetry Table:**
 - Partition Key: `bike_id`
 - Sort Key: `timestamp`
 - Attributes:

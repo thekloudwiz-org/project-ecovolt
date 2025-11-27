@@ -128,7 +128,7 @@ cd test
 **Validates**:
 - stations table
 - user_profiles table
-- vehicle_status table
+- bike_status table
 - battery_inventory table
 - swap_events table
 
@@ -157,7 +157,7 @@ cd test
 #### TestDynamoDBTTLConfiguration
 **Purpose**: Test TTL settings  
 **Validates**:
-- vehicle_status TTL (optional)
+- bike_status TTL (optional)
 - swap_events TTL (enabled)
 
 #### TestDynamoDBBillingModes

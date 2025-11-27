@@ -39,10 +39,10 @@ def lambda_handler(event, context):
         # Route based on HTTP method and path
         if http_method == 'GET' and path == '/health':
             return health_check()
-        elif http_method == 'GET' and path.startswith('/vehicles'):
-            return get_vehicles(event, request_data)
-        elif http_method == 'POST' and path == '/vehicles':
-            return create_vehicle(request_data)
+        elif http_method == 'GET' and path.startswith('/bikes'):
+            return get_bikes(event, request_data)
+        elif http_method == 'POST' and path == '/bikes':
+            return create_bike(request_data)
         elif http_method == 'GET' and path.startswith('/stations'):
             return get_stations(event, request_data)
         elif http_method == 'POST' and path == '/stations':
@@ -88,13 +88,13 @@ def health_check():
     }
 
 
-def get_vehicles(event, request_data):
-    """Get vehicles (list or single)"""
+def get_bikes(event, request_data):
+    """Get bikes (list or single)"""
     path_parameters = event.get('pathParameters', {})
-    vehicle_id = path_parameters.get('id') if path_parameters else None
+    bike_id = path_parameters.get('id') if path_parameters else None
     
-    if vehicle_id:
-        # Get single vehicle
+    if bike_id:
+        # Get single bike
         return {
             'statusCode': 200,
             'headers': {
@@ -102,13 +102,13 @@ def get_vehicles(event, request_data):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'vehicle_id': vehicle_id,
+                'bike_id': bike_id,
                 'model': 'EcoVolt E-Bike',
                 'status': 'active'
             })
         }
     else:
-        # List vehicles
+        # List bikes
         return {
             'statusCode': 200,
             'headers': {
@@ -116,14 +116,14 @@ def get_vehicles(event, request_data):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'vehicles': [],
+                'bikes': [],
                 'count': 0
             })
         }
 
 
-def create_vehicle(request_data):
-    """Create a new vehicle"""
+def create_bike(request_data):
+    """Create a new bike"""
     # Validate required fields
     required_fields = ['model', 'vin']
     for field in required_fields:
@@ -137,7 +137,7 @@ def create_vehicle(request_data):
             'Access-Control-Allow-Origin': '*'
         },
         'body': json.dumps({
-            'vehicle_id': 'vehicle-123',
+            'bike_id': 'bike-123',
             'model': request_data['model'],
             'vin': request_data['vin'],
             'status': 'active'
@@ -221,7 +221,7 @@ def get_swaps(event, request_data):
 def create_swap(request_data):
     """Create a new swap event"""
     # Validate required fields
-    required_fields = ['station_id', 'vehicle_id', 'removed_battery_id', 'installed_battery_id']
+    required_fields = ['station_id', 'bike_id', 'removed_battery_id', 'installed_battery_id']
     for field in required_fields:
         if field not in request_data:
             return error_response(400, f'Missing required field: {field}')
@@ -235,7 +235,7 @@ def create_swap(request_data):
         'body': json.dumps({
             'swap_id': 'swap-123',
             'station_id': request_data['station_id'],
-            'vehicle_id': request_data['vehicle_id'],
+            'bike_id': request_data['bike_id'],
             'removed_battery_id': request_data['removed_battery_id'],
             'installed_battery_id': request_data['installed_battery_id'],
             'timestamp': '2024-01-01T00:00:00Z'

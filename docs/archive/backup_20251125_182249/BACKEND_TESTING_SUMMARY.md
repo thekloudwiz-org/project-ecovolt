@@ -32,7 +32,7 @@ Comprehensive end-to-end testing of the EcoVolt backend infrastructure and servi
      - ecovolt-dev-user-profiles
      - ecovolt-dev-stations
      - ecovolt-dev-swap-events
-     - ecovolt-dev-vehicle-status
+     - ecovolt-dev-bike-status
 
 5. **API Gateway** - PASSED
    - REST API created and deployed

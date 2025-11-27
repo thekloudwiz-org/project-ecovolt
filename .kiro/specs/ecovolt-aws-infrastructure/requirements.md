@@ -2,12 +2,12 @@
 
 ## Introduction
 
-This document specifies the requirements for the EcoVolt AWS Infrastructure, a production-ready cloud architecture supporting EcoVolt Mobility's network of swappable EV batteries, solar-powered swap stations, and IoT-enabled electric vehicles. The system SHALL provide secure, scalable infrastructure for device telemetry ingestion, edge processing, energy monitoring, backend services, analytics pipelines, and user-facing applications.
+This document specifies the requirements for the EcoVolt AWS Infrastructure, a production-ready cloud architecture supporting EcoVolt Mobility's network of swappable EV batteries, solar-powered swap stations, and IoT-enabled electric bikes. The system SHALL provide secure, scalable infrastructure for device telemetry ingestion, edge processing, energy monitoring, backend services, analytics pipelines, and user-facing applications.
 
 ## Glossary
 
 - **EcoVolt System**: The complete AWS cloud infrastructure supporting EcoVolt Mobility operations
-- **IoT Device**: An IoT-enabled electric vehicle or swap station sensor that transmits telemetry data
+- **IoT Device**: An IoT-enabled electric bike or swap station sensor that transmits telemetry data
 - **Telemetry Data**: Time-series measurements from IoT devices including battery status, energy consumption, location, and operational metrics
 - **Swap Station**: A solar-powered facility where EV batteries can be exchanged
 - **Edge Processing**: Data processing performed at or near the swap station location before cloud transmission
@@ -36,7 +36,7 @@ This document specifies the requirements for the EcoVolt AWS Infrastructure, a p
 
 ### Requirement 2
 
-**User Story:** As an IoT platform engineer, I want to ingest telemetry data from thousands of devices, so that vehicle and station data flows reliably into the cloud.
+**User Story:** As an IoT platform engineer, I want to ingest telemetry data from thousands of devices, so that bike and station data flows reliably into the cloud.
 
 #### Acceptance Criteria
 

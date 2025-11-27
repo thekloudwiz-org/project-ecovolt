@@ -139,20 +139,20 @@ resource "aws_dynamodb_table" "user_profiles" {
   )
 }
 
-# Vehicle Last Known Status Table
-resource "aws_dynamodb_table" "vehicle_status" {
-  name             = "${var.project_name}-${var.environment}-vehicle-status"
+# Bike Last Known Status Table
+resource "aws_dynamodb_table" "bike_status" {
+  name             = "${var.project_name}-${var.environment}-bike-status"
   billing_mode     = var.billing_mode
-  hash_key         = "vehicleId"
+  hash_key         = "bikeId"
   stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
-  read_capacity  = var.billing_mode == "PROVISIONED" ? var.vehicle_status_read_capacity : null
-  write_capacity = var.billing_mode == "PROVISIONED" ? var.vehicle_status_write_capacity : null
+  read_capacity  = var.billing_mode == "PROVISIONED" ? var.bike_status_read_capacity : null
+  write_capacity = var.billing_mode == "PROVISIONED" ? var.bike_status_write_capacity : null
 
   # Attributes
   attribute {
-    name = "vehicleId"
+    name = "bikeId"
     type = "S"
   }
 
@@ -171,9 +171,9 @@ resource "aws_dynamodb_table" "vehicle_status" {
     type = "N" # 0-100
   }
 
-  # GSI for user's vehicles
+  # GSI for user's bikes
   global_secondary_index {
-    name            = "UserVehiclesIndex"
+    name            = "UserBikesIndex"
     hash_key        = "userId"
     range_key       = "lastUpdated"
     projection_type = "ALL"
@@ -203,13 +203,13 @@ resource "aws_dynamodb_table" "vehicle_status" {
   # TTL for old status records (optional)
   ttl {
     attribute_name = "ttl"
-    enabled        = var.enable_vehicle_status_ttl
+    enabled        = var.enable_bike_status_ttl
   }
 
   tags = merge(
     var.tags,
     {
-      Name = "${var.project_name}-${var.environment}-vehicle-status"
+      Name = "${var.project_name}-${var.environment}-bike-status"
     }
   )
 }
@@ -312,7 +312,7 @@ resource "aws_dynamodb_table" "swap_events" {
   }
 
   attribute {
-    name = "vehicleId"
+    name = "bikeId"
     type = "S"
   }
 
@@ -326,10 +326,10 @@ resource "aws_dynamodb_table" "swap_events" {
     type = "S"
   }
 
-  # GSI for vehicle's swap history
+  # GSI for bike's swap history
   global_secondary_index {
-    name            = "VehicleSwapsIndex"
-    hash_key        = "vehicleId"
+    name            = "BikeSwapsIndex"
+    hash_key        = "bikeId"
     range_key       = "timestamp"
     projection_type = "ALL"
     read_capacity   = var.billing_mode == "PROVISIONED" ? var.gsi_read_capacity : null

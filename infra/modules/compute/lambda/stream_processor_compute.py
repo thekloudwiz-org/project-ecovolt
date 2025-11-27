@@ -68,4 +68,4 @@ def process_telemetry_data(data):
     # - Store in database
     # - Trigger alerts if needed
     
-    logger.info(f"Processing telemetry: {data.get('vehicleId', 'unknown')}")
+    logger.info(f"Processing telemetry: {data.get('bikeId', 'unknown')}")

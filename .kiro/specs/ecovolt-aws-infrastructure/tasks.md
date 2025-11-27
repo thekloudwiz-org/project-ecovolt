@@ -68,7 +68,7 @@
   - _Requirements: 7.4, 7.5, 11.3_
 
 - [x] 4. Implement IoT module
-  - Create IoT Thing Type definitions for vehicles, stations, and batteries
+  - Create IoT Thing Type definitions for bikes, stations, and batteries
   - Create IoT Policy with appropriate permissions for device operations
   - Configure IoT Core logging
   - Enable IoT Fleet Indexing for device search and query capabilities
@@ -76,7 +76,7 @@
   - Configure IoT Jobs for firmware update orchestration
   - Set up device diagnostics and remote logging capabilities
   - Create IoT Rules for routing telemetry to Kinesis streams
-  - Set up IoT Rules for routing vehicle telemetry (ecovolt/vehicles/+/telemetry)
+  - Set up IoT Rules for routing bike telemetry (ecovolt/bikes/+/telemetry)
   - Set up IoT Rules for routing station energy data (ecovolt/stations/+/energy)
   - Set up IoT Rules for routing swap events (ecovolt/stations/+/swap)
   - Create IAM roles for device management operations
@@ -104,7 +104,7 @@
   - **Validates: Requirements 2.6**
 
 - [x] 4.6 Write unit tests for IoT module
-  - Test IoT Thing Type creation for vehicles, stations, and batteries
+  - Test IoT Thing Type creation for bikes, stations, and batteries
   - Test IoT Policy configuration
   - Verify IoT Rules for each message topic
   - Test IoT Core logging configuration
@@ -182,7 +182,7 @@
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
 - [x] 7. Implement compute module
-  - Create Lambda functions for backend API operations (CRUD for users, vehicles, stations, swaps)
+  - Create Lambda functions for backend API operations (CRUD for users, bikes, stations, swaps)
   - Create Lambda functions for stream processing (Kinesis consumers)
   - Create Lambda functions for data transformation and enrichment
   - Configure Lambda execution IAM roles with least-privilege permissions

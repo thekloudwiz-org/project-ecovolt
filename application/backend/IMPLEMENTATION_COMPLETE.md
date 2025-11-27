@@ -325,7 +325,7 @@ CREATE TABLE wallet_transactions (
 - Sort Key: `battery_id`
 - Attributes: charge_level, health, status, cycles, last_charged
 
-**Vehicle Telemetry Table**
+**bike Telemetry Table**
 - Partition Key: `bike_id`
 - Sort Key: `timestamp`
 - Attributes: battery_level, location, speed, odometer

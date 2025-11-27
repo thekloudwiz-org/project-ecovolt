@@ -280,8 +280,8 @@ variable "enable_dynamodb_pitr" {
   default     = true
 }
 
-variable "enable_vehicle_status_ttl" {
-  description = "Enable TTL for vehicle status table"
+variable "enable_bike_status_ttl" {
+  description = "Enable TTL for bike status table"
   type        = bool
   default     = false
 }

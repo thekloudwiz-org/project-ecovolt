@@ -1,6 +1,6 @@
-# EcoVolt - Electric Vehicle Battery Swapping Platform
+# EcoVolt - Electric bike Battery Swapping Platform
 
-> Production-ready AWS infrastructure and applications for EcoVolt's electric vehicle battery swapping network in Ghana
+> Production-ready AWS infrastructure and applications for EcoVolt's electric bike battery swapping network in Ghana
 
 [![Terraform](https://img.shields.io/badge/Terraform-1.5+-purple?logo=terraform)](https://www.terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-eu--central--1-orange?logo=amazon-aws)](https://aws.amazon.com/)

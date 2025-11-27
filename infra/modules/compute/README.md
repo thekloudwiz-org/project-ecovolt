@@ -10,7 +10,7 @@ This module creates and manages serverless compute resources for the EcoVolt AWS
 ## Features
 
 ### Lambda Functions
-- **API Handler**: Processes backend API requests (CRUD operations for vehicles, stations, swaps)
+- **API Handler**: Processes backend API requests (CRUD operations for bikes, stations, swaps)
 - **Stream Processor**: Processes Kinesis stream data for real-time telemetry
 - **VPC Integration**: Lambda functions deployed in private subnets with secure database access
 - **Auto-scaling**: Automatic concurrency scaling based on request load
@@ -115,8 +115,8 @@ module "compute" {
 ### API Handler
 Handles backend API operations including:
 - **GET /health**: Health check endpoint
-- **GET /vehicles**: List vehicles
-- **POST /vehicles**: Create vehicle
+- **GET /bikes**: List bikes
+- **POST /bikes**: Create bike
 - **GET /stations**: List stations
 - **POST /stations**: Create station
 - **GET /swaps**: List swap events
@@ -173,13 +173,13 @@ Response:
 }
 ```
 
-### Vehicles
+### bikes
 ```bash
-# List vehicles
-GET /vehicles
+# List bikes
+GET /bikes
 
-# Create vehicle
-POST /vehicles
+# Create bike
+POST /bikes
 {
   "model": "EcoVolt E-Bike",
   "vin": "1HGBH41JXMN109186"
@@ -209,7 +209,7 @@ GET /swaps
 POST /swaps
 {
   "station_id": "station-123",
-  "vehicle_id": "vehicle-456",
+  "bike_id": "bike-456",
   "removed_battery_id": "battery-789",
   "installed_battery_id": "battery-012"
 }
@@ -289,8 +289,8 @@ POST /swaps
 # Health check
 curl https://api-id.execute-api.region.amazonaws.com/v1/health
 
-# Create vehicle
-curl -X POST https://api-id.execute-api.region.amazonaws.com/v1/vehicles \
+# Create bike
+curl -X POST https://api-id.execute-api.region.amazonaws.com/v1/bikes \
   -H "Content-Type: application/json" \
   -d '{
     "model": "EcoVolt E-Bike",
@@ -315,7 +315,7 @@ def lambda_handler(event, context):
     
     # Execute query
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM vehicles")
+    cursor.execute("SELECT * FROM bikes")
     results = cursor.fetchall()
     
     cursor.close()
@@ -323,7 +323,7 @@ def lambda_handler(event, context):
     
     return {
         'statusCode': 200,
-        'body': json.dumps({'vehicles': results})
+        'body': json.dumps({'bikes': results})
     }
 ```
 

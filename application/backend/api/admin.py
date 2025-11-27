@@ -1113,8 +1113,8 @@ def list_bikes(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         has_prev = page > 1
         
         # Requirement 10.6: Include telemetry data
-        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE', 'ecovolt-dev-vehicle-telemetry')
-        
+        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE')
+
         # Format bikes
         bike_list = []
         for bike in bikes:
@@ -1129,23 +1129,29 @@ def list_bikes(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'last_swap': bike['last_swap'].isoformat() if bike.get('last_swap') else None,
                 'created_at': bike['created_at'].isoformat() if bike.get('created_at') else None
             }
-            
-            # Get latest telemetry
-            telemetry_items = DynamoDBHelper.query(
-                table_name=telemetry_table,
-                key_condition='bike_id = :bike_id',
-                expression_values={':bike_id': bike['bike_id']}
-            )
-            
-            if telemetry_items:
-                telemetry_items.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-                latest = telemetry_items[0]
-                bike_data['latest_telemetry'] = {
-                    'battery_level': latest.get('battery_level'),
-                    'location': latest.get('location'),
-                    'timestamp': latest.get('timestamp')
-                }
-            
+
+            # Get latest telemetry (gracefully handle missing table or data)
+            try:
+                # Query with bikeId key (matches DynamoDB table schema)
+                telemetry_items = DynamoDBHelper.query(
+                    table_name=telemetry_table,
+                    key_condition='bikeId = :bikeId',
+                    expression_values={':bikeId': bike['bike_id']}
+                )
+
+                if telemetry_items:
+                    telemetry_items.sort(key=lambda x: x.get('lastUpdated', 0), reverse=True)
+                    latest = telemetry_items[0]
+                    bike_data['latest_telemetry'] = {
+                        'battery_level': latest.get('batteryLevel'),
+                        'location': latest.get('location'),
+                        'timestamp': latest.get('lastUpdated')
+                    }
+            except Exception as telemetry_error:
+                # Log but don't fail - telemetry is optional
+                print(f"Could not fetch telemetry for bike {bike['bike_id']}: {str(telemetry_error)}")
+                bike_data['latest_telemetry'] = None
+
             bike_list.append(bike_data)
         
         return {

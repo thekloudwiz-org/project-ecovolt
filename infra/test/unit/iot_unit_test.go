@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Test IoT Thing Type creation for vehicles, stations, and batteries
+// Test IoT Thing Type creation for bikes, stations, and batteries
 func TestIoTThingTypeCreation(t *testing.T) {
 	t.Parallel()
 
@@ -34,14 +34,14 @@ func TestIoTThingTypeCreation(t *testing.T) {
 
 	terraform.InitAndApply(t, terraformOptions)
 
-	// Verify vehicle thing type
-	vehicleThingType := terraform.Output(t, terraformOptions, "vehicle_thing_type_name")
-	assert.NotEmpty(t, vehicleThingType, "Vehicle thing type should be created")
-	assert.Contains(t, vehicleThingType, "vehicle", "Vehicle thing type name should contain 'vehicle'")
+	// Verify bike thing type
+	bikeThingType := terraform.Output(t, terraformOptions, "bike_thing_type_name")
+	assert.NotEmpty(t, bikeThingType, "Bike thing type should be created")
+	assert.Contains(t, bikeThingType, "bike", "Bike thing type name should contain 'bike'")
 
-	vehicleThingTypeARN := terraform.Output(t, terraformOptions, "vehicle_thing_type_arn")
-	assert.NotEmpty(t, vehicleThingTypeARN, "Vehicle thing type ARN should be available")
-	assert.Contains(t, vehicleThingTypeARN, "thingtype/", "Should be a thing type ARN")
+	bikeThingTypeARN := terraform.Output(t, terraformOptions, "bike_thing_type_arn")
+	assert.NotEmpty(t, bikeThingTypeARN, "Bike thing type ARN should be available")
+	assert.Contains(t, bikeThingTypeARN, "thingtype/", "Should be a thing type ARN")
 
 	// Verify station thing type
 	stationThingType := terraform.Output(t, terraformOptions, "station_thing_type_name")
@@ -62,8 +62,8 @@ func TestIoTThingTypeCreation(t *testing.T) {
 	assert.Contains(t, batteryThingTypeARN, "thingtype/", "Should be a thing type ARN")
 
 	// Verify all thing types are unique
-	assert.NotEqual(t, vehicleThingType, stationThingType, "Vehicle and station thing types should be different")
-	assert.NotEqual(t, vehicleThingType, batteryThingType, "Vehicle and battery thing types should be different")
+	assert.NotEqual(t, bikeThingType, stationThingType, "Bike and station thing types should be different")
+	assert.NotEqual(t, bikeThingType, batteryThingType, "Bike and battery thing types should be different")
 	assert.NotEqual(t, stationThingType, batteryThingType, "Station and battery thing types should be different")
 }
 
@@ -133,10 +133,10 @@ func TestIoTRulesForMessageTopics(t *testing.T) {
 	iotRules := terraform.OutputMap(t, terraformOptions, "iot_rule_arns")
 	assert.NotEmpty(t, iotRules, "IoT Rules should be created")
 
-	// Verify vehicle telemetry rule
-	vehicleRuleARN, exists := iotRules["vehicle_telemetry"]
-	assert.True(t, exists, "Vehicle telemetry rule should exist")
-	assert.NotEmpty(t, vehicleRuleARN, "Vehicle telemetry rule ARN should not be empty")
+	// Verify bike telemetry rule
+	bikeRuleARN, exists := iotRules["bike_telemetry"]
+	assert.True(t, exists, "Bike telemetry rule should exist")
+	assert.NotEmpty(t, bikeRuleARN, "Bike telemetry rule ARN should not be empty")
 
 	// Verify station energy rule
 	stationEnergyRuleARN, exists := iotRules["station_energy"]
@@ -150,7 +150,7 @@ func TestIoTRulesForMessageTopics(t *testing.T) {
 
 	// Verify MQTT topics
 	mqttTopics := terraform.OutputMap(t, terraformOptions, "mqtt_topics")
-	assert.Equal(t, "ecovolt/vehicles/+/telemetry", mqttTopics["vehicle_telemetry"])
+	assert.Equal(t, "ecovolt/bikes/+/telemetry", mqttTopics["bike_telemetry"])
 	assert.Equal(t, "ecovolt/stations/+/energy", mqttTopics["station_energy"])
 	assert.Equal(t, "ecovolt/stations/+/swap", mqttTopics["station_swap"])
 }
@@ -416,9 +416,9 @@ func TestIoTRulesWithoutKinesisStream(t *testing.T) {
 	iotRules := terraform.OutputMap(t, terraformOptions, "iot_rule_arns")
 
 	// All rule ARNs should be empty/null
-	vehicleRuleARN, exists := iotRules["vehicle_telemetry"]
+	bikeRuleARN, exists := iotRules["bike_telemetry"]
 	if exists {
-		assert.Empty(t, vehicleRuleARN, "Vehicle telemetry rule should not be created without Kinesis stream")
+		assert.Empty(t, bikeRuleARN, "Bike telemetry rule should not be created without Kinesis stream")
 	}
 
 	stationEnergyRuleARN, exists := iotRules["station_energy"]

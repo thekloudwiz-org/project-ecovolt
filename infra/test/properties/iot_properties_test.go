@@ -59,8 +59,8 @@ func TestProperty7_CertificateBasedDeviceAuthentication(t *testing.T) {
 	assert.Contains(t, iotEndpoint, "amazonaws.com", "Endpoint should be in AWS domain")
 
 	// 3. Verify thing types exist (devices must be registered with a thing type)
-	vehicleThingType := terraform.Output(t, terraformOptions, "vehicle_thing_type_name")
-	assert.NotEmpty(t, vehicleThingType, "Vehicle thing type should exist for device registration")
+	bikeThingType := terraform.Output(t, terraformOptions, "bike_thing_type_name")
+	assert.NotEmpty(t, bikeThingType, "bike thing type should exist for device registration")
 
 	stationThingType := terraform.Output(t, terraformOptions, "station_thing_type_name")
 	assert.NotEmpty(t, stationThingType, "Station thing type should exist for device registration")
@@ -133,10 +133,10 @@ func TestProperty8_MQTTTelemetryAcceptance(t *testing.T) {
 	mqttTopicsOutput := terraform.OutputMap(t, terraformOptions, "mqtt_topics")
 	assert.NotEmpty(t, mqttTopicsOutput, "MQTT topics should be defined")
 
-	// Verify vehicle telemetry topic
-	vehicleTopic, exists := mqttTopicsOutput["vehicle_telemetry"]
-	assert.True(t, exists, "Vehicle telemetry topic should be defined")
-	assert.Equal(t, "ecovolt/vehicles/+/telemetry", vehicleTopic, "Vehicle topic should match expected pattern")
+	// Verify bike telemetry topic
+	bikeTopic, exists := mqttTopicsOutput["bike_telemetry"]
+	assert.True(t, exists, "Bike telemetry topic should be defined")
+	assert.Equal(t, "ecovolt/bikes/+/telemetry", bikeTopic, "bike topic should match expected pattern")
 
 	// Verify station energy topic
 	stationEnergyTopic, exists := mqttTopicsOutput["station_energy"]
@@ -154,11 +154,11 @@ func TestProperty8_MQTTTelemetryAcceptance(t *testing.T) {
 
 	// 4. The IoT policy grants iot:Publish permission to device-specific topics
 	// This is verified by the policy's existence (implicit in Terraform config)
-	// Devices can publish to: ecovolt/vehicles/${thingName}/* and ecovolt/stations/${thingName}/*
+	// Devices can publish to: ecovolt/bikes/${thingName}/* and ecovolt/stations/${thingName}/*
 
 	// 5. Verify thing types exist for device registration
-	vehicleThingType := terraform.Output(t, terraformOptions, "vehicle_thing_type_name")
-	assert.NotEmpty(t, vehicleThingType, "Vehicle thing type should exist")
+	bikeThingType := terraform.Output(t, terraformOptions, "bike_thing_type_name")
+	assert.NotEmpty(t, bikeThingType, "bike thing type should exist")
 
 	stationThingType := terraform.Output(t, terraformOptions, "station_thing_type_name")
 	assert.NotEmpty(t, stationThingType, "Station thing type should exist")
@@ -203,11 +203,11 @@ func TestProperty9_TopicBasedMessageRouting(t *testing.T) {
 	iotRulesOutput := terraform.OutputMap(t, terraformOptions, "iot_rule_arns")
 	assert.NotEmpty(t, iotRulesOutput, "IoT Rules should be created")
 
-	// 2. Verify vehicle telemetry rule exists
-	vehicleRuleARN, exists := iotRulesOutput["vehicle_telemetry"]
-	assert.True(t, exists, "Vehicle telemetry rule should exist")
-	assert.NotEmpty(t, vehicleRuleARN, "Vehicle telemetry rule ARN should not be empty")
-	assert.Contains(t, vehicleRuleARN, "rule/", "Should be an IoT Rule ARN")
+	// 2. Verify bike telemetry rule exists
+	bikeRuleARN, exists := iotRulesOutput["bike_telemetry"]
+	assert.True(t, exists, "Bike telemetry rule should exist")
+	assert.NotEmpty(t, bikeRuleARN, "Bike telemetry rule ARN should not be empty")
+	assert.Contains(t, bikeRuleARN, "rule/", "Should be an IoT Rule ARN")
 
 	// 3. Verify station energy rule exists
 	stationEnergyRuleARN, exists := iotRulesOutput["station_energy"]
@@ -222,8 +222,8 @@ func TestProperty9_TopicBasedMessageRouting(t *testing.T) {
 	assert.Contains(t, stationSwapRuleARN, "rule/", "Should be an IoT Rule ARN")
 
 	// 5. Verify all rules are unique
-	assert.NotEqual(t, vehicleRuleARN, stationEnergyRuleARN, "Vehicle and station energy rules should be different")
-	assert.NotEqual(t, vehicleRuleARN, stationSwapRuleARN, "Vehicle and station swap rules should be different")
+	assert.NotEqual(t, bikeRuleARN, stationEnergyRuleARN, "bike and station energy rules should be different")
+	assert.NotEqual(t, bikeRuleARN, stationSwapRuleARN, "bike and station swap rules should be different")
 	assert.NotEqual(t, stationEnergyRuleARN, stationSwapRuleARN, "Station energy and swap rules should be different")
 
 	// 6. Verify IoT Rules role exists (for Kinesis write permissions)
@@ -233,13 +233,13 @@ func TestProperty9_TopicBasedMessageRouting(t *testing.T) {
 
 	// 7. Verify MQTT topics match rule patterns
 	mqttTopics := terraform.OutputMap(t, terraformOptions, "mqtt_topics")
-	assert.Equal(t, "ecovolt/vehicles/+/telemetry", mqttTopics["vehicle_telemetry"], "Vehicle topic should match")
+	assert.Equal(t, "ecovolt/bikes/+/telemetry", mqttTopics["bike_telemetry"], "Bike topic should match")
 	assert.Equal(t, "ecovolt/stations/+/energy", mqttTopics["station_energy"], "Station energy topic should match")
 	assert.Equal(t, "ecovolt/stations/+/swap", mqttTopics["station_swap"], "Station swap topic should match")
 
 	// 8. Each rule routes to Kinesis based on topic pattern
 	// This is verified by the rules' existence and configuration (implicit in Terraform)
-	// - Vehicle telemetry: ecovolt/vehicles/+/telemetry → Kinesis
+	// - Bike telemetry: ecovolt/bikes/+/telemetry → Kinesis
 	// - Station energy: ecovolt/stations/+/energy → Kinesis
 	// - Station swap: ecovolt/stations/+/swap → Kinesis
 }
@@ -307,8 +307,8 @@ func TestProperty11_ConnectionFailureLoggingAndRecovery(t *testing.T) {
 	// This is verified by the infrastructure's existence (implicit in design)
 
 	// 7. Verify thing types exist (devices must be registered for reconnection)
-	vehicleThingType := terraform.Output(t, terraformOptions, "vehicle_thing_type_name")
-	assert.NotEmpty(t, vehicleThingType, "Vehicle thing type should exist")
+	bikeThingType := terraform.Output(t, terraformOptions, "bike_thing_type_name")
+	assert.NotEmpty(t, bikeThingType, "Bike thing type should exist")
 
 	stationThingType := terraform.Output(t, terraformOptions, "station_thing_type_name")
 	assert.NotEmpty(t, stationThingType, "Station thing type should exist")
@@ -347,9 +347,9 @@ func TestProperty11a_DeviceManagementCapabilities(t *testing.T) {
 	// Verify Property 11a: Device management capabilities
 
 	// 1. Device Registration: Verify thing types exist
-	vehicleThingTypeARN := terraform.Output(t, terraformOptions, "vehicle_thing_type_arn")
-	assert.NotEmpty(t, vehicleThingTypeARN, "Vehicle thing type should exist for device registration")
-	assert.Contains(t, vehicleThingTypeARN, "thingtype/", "Should be a thing type ARN")
+	bikeThingTypeARN := terraform.Output(t, terraformOptions, "bike_thing_type_arn")
+	assert.NotEmpty(t, bikeThingTypeARN, "Bike thing type should exist for device registration")
+	assert.Contains(t, bikeThingTypeARN, "thingtype/", "Should be a thing type ARN")
 
 	stationThingTypeARN := terraform.Output(t, terraformOptions, "station_thing_type_arn")
 	assert.NotEmpty(t, stationThingTypeARN, "Station thing type should exist for device registration")

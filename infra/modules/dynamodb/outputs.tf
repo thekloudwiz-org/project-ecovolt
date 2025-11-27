@@ -32,20 +32,20 @@ output "user_profiles_table_stream_arn" {
   value       = aws_dynamodb_table.user_profiles.stream_arn
 }
 
-# Vehicle Status Table
-output "vehicle_status_table_name" {
-  description = "Name of the vehicle status table"
-  value       = aws_dynamodb_table.vehicle_status.name
+# bike Status Table
+output "bike_status_table_name" {
+  description = "Name of the bike status table"
+  value       = aws_dynamodb_table.bike_status.name
 }
 
-output "vehicle_status_table_arn" {
-  description = "ARN of the vehicle status table"
-  value       = aws_dynamodb_table.vehicle_status.arn
+output "bike_status_table_arn" {
+  description = "ARN of the bike status table"
+  value       = aws_dynamodb_table.bike_status.arn
 }
 
-output "vehicle_status_table_stream_arn" {
-  description = "ARN of the vehicle status table stream"
-  value       = aws_dynamodb_table.vehicle_status.stream_arn
+output "bike_status_table_stream_arn" {
+  description = "ARN of the bike status table stream"
+  value       = aws_dynamodb_table.bike_status.stream_arn
 }
 
 # Battery Inventory Table
@@ -86,7 +86,7 @@ output "all_table_names" {
   value = {
     stations          = aws_dynamodb_table.stations.name
     user_profiles     = aws_dynamodb_table.user_profiles.name
-    vehicle_status    = aws_dynamodb_table.vehicle_status.name
+    bike_status    = aws_dynamodb_table.bike_status.name
     battery_inventory = aws_dynamodb_table.battery_inventory.name
     swap_events       = aws_dynamodb_table.swap_events.name
   }
@@ -98,7 +98,7 @@ output "all_table_arns" {
   value = [
     aws_dynamodb_table.stations.arn,
     aws_dynamodb_table.user_profiles.arn,
-    aws_dynamodb_table.vehicle_status.arn,
+    aws_dynamodb_table.bike_status.arn,
     aws_dynamodb_table.battery_inventory.arn,
     aws_dynamodb_table.swap_events.arn
   ]
@@ -110,7 +110,7 @@ output "all_table_stream_arns" {
   value = [
     aws_dynamodb_table.stations.stream_arn,
     aws_dynamodb_table.user_profiles.stream_arn,
-    aws_dynamodb_table.vehicle_status.stream_arn,
+    aws_dynamodb_table.bike_status.stream_arn,
     aws_dynamodb_table.battery_inventory.stream_arn,
     aws_dynamodb_table.swap_events.stream_arn
   ]

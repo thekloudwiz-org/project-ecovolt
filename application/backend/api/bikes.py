@@ -68,7 +68,7 @@ def get_bike_details(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         # Requirement 7.3: Retrieve real-time battery level from DynamoDB
-        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE', 'ecovolt-dev-vehicle-telemetry')
+        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE')
         
         # Query latest telemetry for this bike
         telemetry_items = DynamoDBHelper.query(

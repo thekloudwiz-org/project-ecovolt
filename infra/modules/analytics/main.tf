@@ -49,7 +49,7 @@ resource "aws_kinesis_stream" "telemetry" {
 # - Native support for time-series data with TTL
 #
 # The telemetry data is now stored in DynamoDB tables created in the 
-# dynamodb module (vehicle_telemetry, station_telemetry, swap_events)
+# dynamodb module (bike_telemetry, station_telemetry, swap_events)
 # ============================================================================
 
 # NOTE: Timestream resources have been removed due to deprecation
@@ -227,7 +227,7 @@ resource "aws_lambda_function" "stream_processor" {
   environment {
     variables = {
       # Telemetry data is now stored in DynamoDB tables (see dynamodb module)
-      # Tables: vehicle_telemetry, station_telemetry, swap_events
+      # Tables: bike_telemetry, station_telemetry, swap_events
       DATA_LAKE_BUCKET = aws_s3_bucket.data_lake.id
       KINESIS_STREAM   = aws_kinesis_stream.telemetry.name
     }

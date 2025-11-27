@@ -83,7 +83,7 @@ aws rds wait db-instance-available \
 # Point applications to new endpoint
 
 # 4. Verify data integrity
-psql -h <new-endpoint> -U ecovolt_admin -d ecovolt -c "SELECT COUNT(*) FROM vehicles;"
+psql -h <new-endpoint> -U ecovolt_admin -d ecovolt -c "SELECT COUNT(*) FROM bikes;"
 ```
 
 **Estimated Recovery Time:** 15-30 minutes
@@ -244,7 +244,7 @@ aws rds restore-db-instance-from-db-snapshot \
   --db-snapshot-identifier <latest-snapshot>
 
 # Verify data
-psql -h <test-endpoint> -U ecovolt_admin -d ecovolt -c "SELECT COUNT(*) FROM vehicles;"
+psql -h <test-endpoint> -U ecovolt_admin -d ecovolt -c "SELECT COUNT(*) FROM bikes;"
 
 # Clean up
 aws rds delete-db-instance \

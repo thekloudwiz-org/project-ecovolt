@@ -51,7 +51,7 @@ def process_bike_telemetry(message: Dict[str, Any]) -> Dict[str, Any]:
             return {'statusCode': 400, 'body': json.dumps({'error': 'Missing bike_id'})}
         
         # Requirement 13.2: Update bike telemetry in DynamoDB
-        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE', 'ecovolt-dev-vehicle-telemetry')
+        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE')
         
         timestamp = datetime.now()
         

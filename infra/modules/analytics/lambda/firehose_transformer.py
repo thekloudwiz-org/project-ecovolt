@@ -80,8 +80,8 @@ def transform_telemetry(data):
     data['processedAt'] = datetime.utcnow().isoformat()
     
     # Validate and clean data
-    if 'vehicleId' in data:
-        data['vehicleId'] = str(data['vehicleId']).strip()
+    if 'bikeId' in data:
+        data['bikeId'] = str(data['bikeId']).strip()
     
     if 'timestamp' in data:
         # Ensure timestamp is in ISO format
@@ -138,7 +138,7 @@ def calculate_data_quality(data):
         Quality score
     """
     score = 100
-    required_fields = ['vehicleId', 'timestamp', 'battery', 'location']
+    required_fields = ['bikeId', 'timestamp', 'battery', 'location']
     
     # Deduct points for missing required fields
     for field in required_fields:

@@ -18,7 +18,7 @@ func TestDynamoDBTablesCreation(t *testing.T) {
 			"environment":                   "test",
 			"billing_mode":                  "PAY_PER_REQUEST",
 			"enable_point_in_time_recovery": true,
-			"enable_vehicle_status_ttl":     false,
+			"enable_bike_status_ttl":     false,
 			"enable_swap_events_ttl":        true,
 			"kms_key_arn":                   "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"tags": map[string]string{
@@ -37,7 +37,7 @@ func TestDynamoDBTablesCreation(t *testing.T) {
 	expectedTables := []string{
 		"aws_dynamodb_table.stations",
 		"aws_dynamodb_table.user_profiles",
-		"aws_dynamodb_table.vehicle_status",
+		"aws_dynamodb_table.bike_status",
 		"aws_dynamodb_table.battery_inventory",
 		"aws_dynamodb_table.swap_events",
 	}
@@ -171,7 +171,7 @@ func TestDynamoDBTTLConfiguration(t *testing.T) {
 
 	testCases := []struct {
 		name                  string
-		enableVehicleStatusTTL bool
+		enableBikeStatusTTL bool
 		enableSwapEventsTTL    bool
 	}{
 		{"TTL Enabled", false, true},
@@ -186,7 +186,7 @@ func TestDynamoDBTTLConfiguration(t *testing.T) {
 					"project_name":              "test-ecovolt",
 					"environment":               "test",
 					"billing_mode":              "PAY_PER_REQUEST",
-					"enable_vehicle_status_ttl": tc.enableVehicleStatusTTL,
+					"enable_bike_status_ttl": tc.enableBikeStatusTTL,
 					"enable_swap_events_ttl":    tc.enableSwapEventsTTL,
 					"kms_key_arn":               "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 					"tags": map[string]string{

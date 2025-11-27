@@ -77,7 +77,7 @@ def get_latest_bike_telemetry(bike_id: str) -> Optional[Dict[str, Any]]:
     Requirements: 13.3
     """
     try:
-        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE', 'ecovolt-dev-vehicle-telemetry')
+        telemetry_table = os.getenv('DYNAMODB_TELEMETRY_TABLE')
         
         telemetry_items = DynamoDBHelper.query(
             table_name=telemetry_table,

@@ -70,7 +70,7 @@ module "dynamodb" {
   enable_point_in_time_recovery = var.enable_dynamodb_pitr
 
   # TTL settings
-  enable_vehicle_status_ttl = var.enable_vehicle_status_ttl
+  enable_bike_status_ttl = var.enable_bike_status_ttl
   enable_swap_events_ttl    = var.enable_swap_events_ttl
 
   tags = local.common_tags

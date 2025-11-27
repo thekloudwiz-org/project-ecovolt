@@ -377,9 +377,10 @@ resource "aws_lambda_function" "api_handler" {
       DB_PASS                      = local.db_creds["password"]
       COGNITO_USER_POOL_ID         = var.cognito_user_pool_id
       COGNITO_APP_CLIENT_ID        = var.cognito_client_id
-      COGNITO_JWK_KEYS = file("${path.module}/../../../cognito_jwk_keys.json")
-      DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
-      DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
+      COGNITO_ADMIN_CLIENT_ID      = var.cognito_admin_client_id
+      COGNITO_JWK_KEYS             = file("${path.module}/../../../cognito_jwk_keys.json")
+      DYNAMODB_BATTERIES_TABLE     = lookup(var.dynamodb_table_names, "battery_inventory", "${var.environment}-batteries")
+      DYNAMODB_TELEMETRY_TABLE     = lookup(var.dynamodb_table_names, "bike_status", "${var.environment}-bike-status")
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"
       SNS_TOPIC_ARN                = aws_sns_topic.notifications.arn
       IOT_ENDPOINT                 = var.iot_endpoint
@@ -455,8 +456,8 @@ resource "aws_lambda_function" "iot_processor" {
       DB_NAME                      = var.db_name
       DB_USER                      = local.db_creds["username"]
       DB_PASS                      = local.db_creds["password"]
-      DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
-      DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
+      DYNAMODB_BATTERIES_TABLE     = lookup(var.dynamodb_table_names, "battery_inventory", "${var.environment}-batteries")
+      DYNAMODB_TELEMETRY_TABLE     = lookup(var.dynamodb_table_names, "bike_status", "${var.environment}-bike-status")
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"
       SNS_TOPIC_ARN                = aws_sns_topic.notifications.arn
       IOT_ENDPOINT                 = var.iot_endpoint

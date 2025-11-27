@@ -47,7 +47,7 @@ userId (PK)             # Cognito sub (UUID)
 email                   # User email
 name                    # Full name
 phoneNumber             # Phone number
-vehicleIds              # List of owned vehicle IDs
+bikeIds              # List of owned bike IDs
 paymentMethods          # Payment method info
 preferences             # User preferences
 createdAt               # Account creation timestamp
@@ -62,18 +62,18 @@ lastLoginAt             # Last login timestamp
 **Use Cases**:
 - User authentication
 - Profile management
-- Vehicle ownership tracking
+- bike ownership tracking
 - Payment processing
 
-### 3. Vehicle Status Table
-Stores last known status of each vehicle.
+### 3. bike Status Table
+Stores last known status of each bike.
 
 **Schema**:
 ```
-vehicleId (PK)          # Vehicle identifier
+bikeId (PK)          # bike identifier
 userId                  # Owner user ID
-model                   # Vehicle model
-vin                     # Vehicle identification number
+model                   # bike model
+vin                     # bike identification number
 batteryId               # Current battery ID
 batteryLevel            # Current battery level (0-100)
 location                # Last known location
@@ -84,14 +84,14 @@ ttl                     # TTL for old records (optional)
 ```
 
 **GSIs**:
-- `UserVehiclesIndex`: Query vehicles by user
-- `BatteryLevelIndex`: Query vehicles by battery level (for low battery alerts)
+- `UserbikesIndex`: Query bikes by user
+- `BatteryLevelIndex`: Query bikes by battery level (for low battery alerts)
 
 **Use Cases**:
-- Vehicle tracking
+- bike tracking
 - Battery level monitoring
 - Low battery alerts
-- Vehicle-user association
+- bike-user association
 
 ### 4. Battery Inventory Table
 Stores battery inventory at each station.
@@ -129,11 +129,11 @@ Stores battery swap transaction history.
 ```
 swapId (PK)             # Swap event UUID
 timestamp (SK)          # Swap timestamp
-vehicleId               # Vehicle ID
+bikeId               # bike ID
 stationId               # Station ID
 userId                  # User ID
-removedBatteryId        # Battery removed from vehicle
-installedBatteryId      # Battery installed in vehicle
+removedBatteryId        # Battery removed from bike
+installedBatteryId      # Battery installed in bike
 duration                # Swap duration (seconds)
 cost                    # Swap cost
 paymentMethod           # Payment method used
@@ -141,7 +141,7 @@ ttl                     # TTL for old records (90 days)
 ```
 
 **GSIs**:
-- `VehicleSwapsIndex`: Query swaps by vehicle
+- `bikeSwapsIndex`: Query swaps by bike
 - `StationSwapsIndex`: Query swaps by station
 - `UserSwapsIndex`: Query swaps by user
 
@@ -170,7 +170,7 @@ module "dynamodb" {
   enable_point_in_time_recovery = true
 
   # TTL
-  enable_vehicle_status_ttl = false
+  enable_bike_status_ttl = false
   enable_swap_events_ttl    = true
 
   # Monitoring
@@ -246,7 +246,7 @@ module "dynamodb" {
 **Production**:
 - Stations: 20 RCU / 10 WCU
 - Users: 50 RCU / 20 WCU
-- Vehicle Status: 100 RCU / 50 WCU
+- bike Status: 100 RCU / 50 WCU
 - Battery Inventory: 50 RCU / 20 WCU
 - Swap Events: 20 RCU / 50 WCU
 
@@ -271,7 +271,7 @@ Auto-scaling triggers at 70% utilization.
 
 ### TTL (Time To Live)
 
-**Vehicle Status**: Optional TTL
+**bike Status**: Optional TTL
 - Keep only recent status (e.g., 30 days)
 - Historical data in Timestream
 
@@ -305,10 +305,10 @@ Stream view type: `NEW_AND_OLD_IMAGES` (full item before and after)
 - Find user by email: `Query(EmailIndex, email=...)`
 - List recent users: `Query(CreatedAtIndex)`
 
-### Vehicle Status
-- Get vehicle status: `GetItem(vehicleId)`
-- List user's vehicles: `Query(UserVehiclesIndex, userId=...)`
-- Find low battery vehicles: `Query(BatteryLevelIndex, batteryLevel<20)`
+### bike Status
+- Get bike status: `GetItem(bikeId)`
+- List user's bikes: `Query(UserbikesIndex, userId=...)`
+- Find low battery bikes: `Query(BatteryLevelIndex, batteryLevel<20)`
 
 ### Battery Inventory
 - Get battery info: `GetItem(batteryId)`
@@ -317,7 +317,7 @@ Stream view type: `NEW_AND_OLD_IMAGES` (full item before and after)
 
 ### Swap Events
 - Get swap details: `GetItem(swapId)`
-- List vehicle swaps: `Query(VehicleSwapsIndex, vehicleId=...)`
+- List bike swaps: `Query(bikeSwapsIndex, bikeId=...)`
 - List station swaps: `Query(StationSwapsIndex, stationId=...)`
 - List user swaps: `Query(UserSwapsIndex, userId=...)`
 
@@ -328,14 +328,14 @@ Stream view type: `NEW_AND_OLD_IMAGES` (full item before and after)
 **Assumptions**:
 - 1,000 stations
 - 10,000 users
-- 5,000 vehicles
+- 5,000 bikes
 - 10,000 batteries
 - 1,000 swaps/day
 
 **Monthly Costs**:
 - Stations: ~$5 (low write volume)
 - Users: ~$10 (moderate read/write)
-- Vehicle Status: ~$50 (high write volume)
+- bike Status: ~$50 (high write volume)
 - Battery Inventory: ~$20 (moderate read/write)
 - Swap Events: ~$30 (moderate write volume)
 - **Total**: ~$115/month

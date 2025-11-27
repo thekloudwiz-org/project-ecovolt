@@ -25,7 +25,7 @@ IoT Core → Kinesis Data Stream → Lambda Processor → Timestream
 ### Timestream Database
 - **Purpose**: Time-series storage for fast queries on recent data
 - **Tables**:
-  - `vehicle-telemetry`: Vehicle battery, location, and operational data
+  - `bike-telemetry`: bike battery, location, and operational data
   - `station-energy`: Solar generation and grid consumption data
   - `swap-events`: Battery swap transaction records
 - **Lifecycle**: Automatic data tiering (memory → magnetic storage)
