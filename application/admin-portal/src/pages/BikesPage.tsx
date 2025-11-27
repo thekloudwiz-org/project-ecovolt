@@ -421,7 +421,7 @@ export default function BikesPage() {
                           <optgroup label="📗 Available Users (No Active Bike)">
                             {unassignedUsers.map(user => (
                               <option key={user.user_id} value={user.user_id}>
-                                {user.email} - {user.full_name || 'No name'}
+                                {user.email} - {user.name || 'No name'}
                               </option>
                             ))}
                           </optgroup>
@@ -431,7 +431,7 @@ export default function BikesPage() {
                           <optgroup label="📕 Already Assigned (Has Active Bike)">
                             {assignedUsers.map(user => (
                               <option key={user.user_id} value={user.user_id}>
-                                {user.email} - {user.full_name || 'No name'}
+                                {user.email} - {user.name || 'No name'}
                               </option>
                             ))}
                           </optgroup>
