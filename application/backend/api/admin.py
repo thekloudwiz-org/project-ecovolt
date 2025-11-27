@@ -744,11 +744,23 @@ def create_station(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Parse request body
         body = json.loads(event.get('body', '{}'))
-        
+
+        # Log received data for debugging
+        print(json.dumps({
+            'event': 'create_station_request',
+            'body_keys': list(body.keys()),
+            'body': body
+        }))
+
         # Requirement 9.1: Validate all required fields are present
         # Requirement 9.2: Validate latitude and longitude
         valid, error = validate_station_data(body)
         if not valid:
+            print(json.dumps({
+                'event': 'validation_failed',
+                'error': error,
+                'received_data': body
+            }))
             return {
                 'statusCode': 400,
                 'body': json.dumps({
