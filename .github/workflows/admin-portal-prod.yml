@@ -4,19 +4,17 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
     paths:
       - 'application/admin-portal/**'
       - '.github/workflows/admin-portal-prod.yml'
       - '.github/workflows/admin-portal-reusable.yml'
+      - '!application/admin-portal/**/*.md'
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
     paths:
       - 'application/admin-portal/**'
+      - '!application/admin-portal/**/*.md'
 
 permissions:
   id-token: write

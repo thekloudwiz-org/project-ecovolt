@@ -54,6 +54,14 @@ export default function StationsPage() {
       operating_hours = { open, close }
     }
 
+    // Parse pricing
+    const currency = formData.get('currency') as string || 'GHS'
+    const swapFee = parseFloat(formData.get('swapFee') as string) || 5.0
+    const pricing = {
+      currency,
+      swap_fee: swapFee
+    }
+
     const data = {
       name: formData.get('name') as string,
       address: formData.get('address') as string,
@@ -62,6 +70,7 @@ export default function StationsPage() {
       longitude: parseFloat(formData.get('longitude') as string),
       total_capacity: parseInt(formData.get('capacity') as string),
       operating_hours,
+      pricing,
       status: formData.get('status') as 'active' | 'inactive' | 'maintenance',
     }
 
@@ -222,6 +231,36 @@ export default function StationsPage() {
                     <option value="inactive">Inactive</option>
                     <option value="maintenance">Maintenance</option>
                   </select>
+                </div>
+                <div className="form-group">
+                  <label>Currency</label>
+                  <input
+                    name="currency"
+                    defaultValue={
+                      editingStation?.pricing
+                        ? typeof editingStation.pricing === 'string'
+                          ? 'GHS'
+                          : editingStation.pricing.currency
+                        : 'GHS'
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Swap Fee</label>
+                  <input
+                    name="swapFee"
+                    type="number"
+                    step="0.01"
+                    defaultValue={
+                      editingStation?.pricing
+                        ? typeof editingStation.pricing === 'string'
+                          ? '5.0'
+                          : editingStation.pricing.swap_fee
+                        : '5.0'
+                    }
+                    required
+                  />
                 </div>
               </div>
               <div className="modal-actions">

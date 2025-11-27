@@ -96,13 +96,30 @@ tmp/
 temp/
 *.tmp
 
-# MD Files
-docs/AUDIT_REPORT_PRODUCT_OWNER.md
+# Session notes and working documents
+docs/session-notes/
+docs/work-logs/
+*_FIX.md
+*_SUMMARY.md
+*_STATUS.md
+*_CHECKLIST.md
+*_COMPLETE.md
+*_GUIDE.md
+IMPLEMENTATION_*.md
+DEPLOYMENT_*.md
+TERRAFORM_*.md
 AUTH*.md
+docs/AUDIT_REPORT_PRODUCT_OWNER.md
 docs/BACKEND_FIXES_DEPLOYMENT_GUIDE.md
-BACKEND_VERIFICATION_CHECKLIST.md
-ADMIN_PORTAL_IMPLEMENTATION_PLAN.md
-TERRAFORM_CREDENTIAL_INJECTION.md
+
+# Cached/generated files
+cognito_jwk_keys.json
+*.jwk
+*.jwks
+
+# Test scripts
+scripts/test_*.py
+scripts/*_test.py
 
 # Archived Workflows
 .github/workflows/admin-portal-ci-cd.yml.old

@@ -4,25 +4,17 @@ on:
   pull_request:
     branches:
       - staging
-    paths-ignore:
-      - '**/*.md'
     paths:
-      - 'infra/**'
-      - 'infra/**'
-      - 'modules/**'
-      - 'environments/**'
+      - 'infra/**/*.tf'
+      - 'infra/**/*.tfvars'
       - '.github/workflows/staging.yml'
       - '.github/workflows/terraform-reusable.yml'
   push:
     branches:
       - staging
-    paths-ignore:
-      - '**/*.md'
     paths:
-      - 'infra/**'
-      - 'infra/**'
-      - 'modules/**'
-      - 'environments/**'
+      - 'infra/**/*.tf'
+      - 'infra/**/*.tfvars'
       - '.github/workflows/staging.yml'
       - '.github/workflows/terraform-reusable.yml'
 
