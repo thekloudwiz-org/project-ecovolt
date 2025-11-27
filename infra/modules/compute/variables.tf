@@ -232,6 +232,11 @@ variable "cognito_client_id" {
   default     = ""
 }
 
+variable "cognito_admin_client_id" {
+  description = "Cognito App Client ID for admin portal"
+  type        = string
+}
+
 variable "iot_endpoint" {
   description = "AWS IoT Core endpoint for device communication"
   type        = string

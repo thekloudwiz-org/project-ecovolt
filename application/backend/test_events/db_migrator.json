@@ -1,0 +1,13 @@
+{
+  "s3_bucket": "ecovolt-dev-deployment-bucket",
+  "s3_prefix": "migrations/",
+  "dry_run": false,
+  "_instructions": [
+    "This Lambda requires:",
+    "1. Environment variables: DB_HOST, DB_NAME, DB_USER, DB_PASS",
+    "2. VPC access to RDS PostgreSQL",
+    "3. S3 bucket with migration SQL files",
+    "",
+    "For dry run testing, set dry_run to true"
+  ]
+}

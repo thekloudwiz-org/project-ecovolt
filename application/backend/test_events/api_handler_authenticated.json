@@ -1,0 +1,18 @@
+{
+  "httpMethod": "GET",
+  "path": "/profile",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer <REPLACE_WITH_VALID_JWT_TOKEN>",
+    "User-Agent": "EcoVolt-Mobile/1.0"
+  },
+  "requestContext": {
+    "identity": {
+      "sourceIp": "192.168.1.1"
+    }
+  },
+  "body": null,
+  "queryStringParameters": null,
+  "pathParameters": null,
+  "_instructions": "Replace <REPLACE_WITH_VALID_JWT_TOKEN> with a real JWT token from Cognito login"
+}

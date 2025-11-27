@@ -33,7 +33,7 @@ async function getAuthHeaders() {
     }
     console.log('Auth token retrieved, length:', token.length)
     return {
-      Authorization: token,
+      Authorization: `Bearer ${token}`,
     }
   } catch (error) {
     console.error('Error getting auth headers:', error)

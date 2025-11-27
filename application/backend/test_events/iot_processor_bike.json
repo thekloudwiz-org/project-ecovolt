@@ -1,0 +1,21 @@
+{
+  "type": "bike_telemetry",
+  "bike_id": "BIKE-001",
+  "telemetry": {
+    "battery_level": 45,
+    "location": {
+      "lat": 5.6037,
+      "lng": -0.1870
+    },
+    "speed": 35,
+    "odometer": 1250,
+    "temperature": 28
+  },
+  "_instructions": [
+    "This Lambda processes IoT messages from bikes",
+    "Requires:",
+    "1. Environment variable: DYNAMODB_TELEMETRY_TABLE",
+    "2. DynamoDB table access via VPC Gateway Endpoint",
+    "3. Optional: VPC access to RDS if battery_level < 10 (for user lookup)"
+  ]
+}

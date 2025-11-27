@@ -20,7 +20,7 @@ resource "aws_lambda_function" "auth_handler" {
   filename         = data.archive_file.api_handler.output_path
   function_name    = "${local.name_prefix}-auth-handler"
   role             = aws_iam_role.lambda_execution.arn
-  handler          = "functions.api_handler.handler"
+  handler          = "functions.auth_handler.handler"
   source_code_hash = data.archive_file.api_handler.output_base64sha256
   runtime          = var.lambda_runtime
   memory_size      = 256 # Auth operations are lightweight
@@ -35,6 +35,7 @@ resource "aws_lambda_function" "auth_handler" {
       ENVIRONMENT           = var.environment
       COGNITO_USER_POOL_ID  = var.cognito_user_pool_id
       COGNITO_APP_CLIENT_ID = var.cognito_client_id
+      COGNITO_ADMIN_CLIENT_ID  = var.cognito_admin_client_id
       LOG_LEVEL             = "INFO"
     }
   }

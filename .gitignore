@@ -95,3 +95,15 @@ yarn-error.log*
 tmp/
 temp/
 *.tmp
+
+# MD Files
+docs/AUDIT_REPORT_PRODUCT_OWNER.md
+AUTH*.md
+docs/BACKEND_FIXES_DEPLOYMENT_GUIDE.md
+BACKEND_VERIFICATION_CHECKLIST.md
+ADMIN_PORTAL_IMPLEMENTATION_PLAN.md
+TERRAFORM_CREDENTIAL_INJECTION.md
+
+# Archived Workflows
+.github/workflows/admin-portal-ci-cd.yml.old
+.github/workflows/mobile-app-ci-cd.yml.old

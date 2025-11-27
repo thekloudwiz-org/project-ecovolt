@@ -60,6 +60,32 @@ resource "aws_security_group_rule" "lambda_to_rds" {
 # IAM Role for Lambda Execution
 # ============================================================================
 
+# Cognito access policy for auth Lambda
+resource "aws_iam_role_policy" "lambda_cognito" {
+  name = "${local.name_prefix}-lambda-cognito"
+  role = aws_iam_role.lambda_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:SignUp",
+          "cognito-idp:ConfirmSignUp",
+          "cognito-idp:InitiateAuth",
+          "cognito-idp:RespondToAuthChallenge",
+          "cognito-idp:GetUser",
+          "cognito-idp:AdminGetUser"
+        ]
+        Resource = [
+          "arn:aws:cognito-idp:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:userpool/${var.cognito_user_pool_id}"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "lambda_execution" {
   name = local.lambda_execution_role_name
 
@@ -351,6 +377,7 @@ resource "aws_lambda_function" "api_handler" {
       DB_PASS                      = local.db_creds["password"]
       COGNITO_USER_POOL_ID         = var.cognito_user_pool_id
       COGNITO_APP_CLIENT_ID        = var.cognito_client_id
+      COGNITO_JWK_KEYS = file("${path.module}/../../../cognito_jwk_keys.json")
       DYNAMODB_BATTERIES_TABLE     = "${var.environment}-batteries"
       DYNAMODB_TELEMETRY_TABLE     = "${var.environment}-vehicle-telemetry"
       DYNAMODB_NOTIFICATIONS_TABLE = "${var.environment}-notifications"

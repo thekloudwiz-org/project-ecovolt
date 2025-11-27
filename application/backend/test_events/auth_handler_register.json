@@ -1,0 +1,17 @@
+{
+  "httpMethod": "POST",
+  "path": "/auth/register",
+  "headers": {
+    "Content-Type": "application/json",
+    "User-Agent": "EcoVolt-Mobile/1.0"
+  },
+  "requestContext": {
+    "identity": {
+      "sourceIp": "192.168.1.1"
+    }
+  },
+  "body": "{\"email\":\"test@example.com\",\"password\":\"TestPass123!\",\"name\":\"Test User\",\"phone\":\"+233501234567\"}",
+  "queryStringParameters": null,
+  "pathParameters": null,
+  "_instructions": "This test will attempt to create a real user in Cognito. Use a valid email you can verify."
+}

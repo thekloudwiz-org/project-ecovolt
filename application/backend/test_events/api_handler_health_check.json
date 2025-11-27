@@ -1,0 +1,16 @@
+{
+  "httpMethod": "GET",
+  "path": "/health",
+  "headers": {
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0"
+  },
+  "requestContext": {
+    "identity": {
+      "sourceIp": "192.168.1.1"
+    }
+  },
+  "body": null,
+  "queryStringParameters": null,
+  "pathParameters": null
+}

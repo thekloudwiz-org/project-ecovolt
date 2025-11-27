@@ -1,0 +1,17 @@
+{
+  "httpMethod": "POST",
+  "path": "/auth/login",
+  "headers": {
+    "Content-Type": "application/json",
+    "User-Agent": "EcoVolt-Mobile/1.0"
+  },
+  "requestContext": {
+    "identity": {
+      "sourceIp": "192.168.1.1"
+    }
+  },
+  "body": "{\"email\":\"test@example.com\",\"password\":\"TestPass123!\"}",
+  "queryStringParameters": null,
+  "pathParameters": null,
+  "_instructions": "Replace with actual registered user credentials"
+}

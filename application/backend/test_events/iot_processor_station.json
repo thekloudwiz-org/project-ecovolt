@@ -1,0 +1,16 @@
+{
+  "type": "station_telemetry",
+  "station_id": "STATION-001",
+  "telemetry": {
+    "available_batteries": 8,
+    "energy_consumption": 120.5,
+    "solar_generation": 45.2,
+    "temperature": 32
+  },
+  "_instructions": [
+    "This Lambda processes IoT messages from charging stations",
+    "Requires:",
+    "1. Environment variable: DYNAMODB_STATION_TELEMETRY_TABLE",
+    "2. DynamoDB table access via VPC Gateway Endpoint"
+  ]
+}

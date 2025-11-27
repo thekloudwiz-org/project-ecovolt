@@ -151,6 +151,7 @@ module "compute" {
   db_security_group_id = module.database.db_security_group_id
   db_secret_arn        = module.database.db_secret_arn
   kinesis_stream_arn   = module.analytics.kinesis_stream_arn
+  cognito_admin_client_id = module.cognito.admin_portal_client_id
 
   lambda_runtime      = var.lambda_runtime
   enable_xray_tracing = var.enable_xray_tracing
