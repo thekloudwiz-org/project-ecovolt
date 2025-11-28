@@ -76,6 +76,7 @@ Thumbs.db
 # Backup files
 *.backup
 *.bak
+*.bak*
 
 # Environment files
 .env
@@ -124,7 +125,7 @@ scripts/test_*.py
 scripts/*_test.py
 
 # Archived Workflows
-.github/workflows/admin-portal-ci-cd.yml.old
+.github/workflows/*.old
 .github/workflows/mobile-app-ci-cd.yml.oldscripts/testing/certs/
 scripts/testing/package/
 **/lambda/package/

@@ -255,6 +255,8 @@ resource "aws_iam_role_policy" "lambda_processor" {
 }
 
 # Lambda Function for Kinesis Stream Processing
+# Note: Lambda packages are built by GitHub Actions workflow before terraform runs
+# For local development, run: scripts/build-lambdas.sh
 resource "aws_lambda_function" "stream_processor" {
   filename      = "${path.module}/lambda/stream_processor.zip"
   function_name = local.lambda_stream_processor_name
