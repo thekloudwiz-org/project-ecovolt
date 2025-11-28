@@ -76,7 +76,8 @@ resource "aws_iam_role_policy" "lambda_cognito" {
           "cognito-idp:InitiateAuth",
           "cognito-idp:RespondToAuthChallenge",
           "cognito-idp:GetUser",
-          "cognito-idp:AdminGetUser"
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminCreateUser"
         ]
         Resource = [
           "arn:aws:cognito-idp:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:userpool/${var.cognito_user_pool_id}"
