@@ -445,7 +445,7 @@ export default function BikesPage() {
                           <optgroup label="📗 Users Without Bikes">
                             {usersWithoutBikes.map(user => (
                               <option key={user.user_id} value={user.user_id}>
-                                {user.email} - {user.name || 'No name'}
+                                {user.name || 'No name'} | {user.email}
                               </option>
                             ))}
                           </optgroup>
@@ -457,7 +457,7 @@ export default function BikesPage() {
                               const bikeCount = userBikeCounts.get(user.user_id) || 0
                               return (
                                 <option key={user.user_id} value={user.user_id}>
-                                  {user.email} - {user.name || 'No name'} ×{bikeCount}
+                                  {user.name || 'No name'} | {user.email} ×{bikeCount}
                                 </option>
                               )
                             })}
