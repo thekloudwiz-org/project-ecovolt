@@ -18,7 +18,7 @@ resource "aws_timestreaminfluxdb_db_instance" "telemetry" {
   bucket       = "${var.environment}-telemetry"
 
   # Publicly accessible (set to false for production)
-  publicly_accessible = var.environment == "dev" ? true : false
+  publicly_accessible = false
 
   # Deployment type
   deployment_type = var.influxdb_deployment_type
