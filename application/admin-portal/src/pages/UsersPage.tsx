@@ -212,29 +212,29 @@ export default function UsersPage() {
                     <div className="details-grid">
                       <div className="detail-item">
                         <label>User ID:</label>
-                        <span>{userDetails.user?.user_id}</span>
+                        <span>{userDetails.user_id}</span>
                       </div>
                       <div className="detail-item">
                         <label>Name:</label>
-                        <span>{userDetails.user?.name}</span>
+                        <span>{userDetails.name}</span>
                       </div>
                       <div className="detail-item">
                         <label>Email:</label>
-                        <span>{userDetails.user?.email}</span>
+                        <span>{userDetails.email}</span>
                       </div>
                       <div className="detail-item">
                         <label>Phone:</label>
-                        <span>{userDetails.user?.phone}</span>
+                        <span>{userDetails.phone}</span>
                       </div>
                       <div className="detail-item">
                         <label>Subscription:</label>
-                        <span className={`subscription-badge subscription-${userDetails.user?.subscription}`}>
-                          {userDetails.user?.subscription}
+                        <span className={`subscription-badge subscription-${userDetails.subscription}`}>
+                          {userDetails.subscription}
                         </span>
                       </div>
                       <div className="detail-item">
                         <label>Joined:</label>
-                        <span>{userDetails.user?.created_at ? new Date(userDetails.user.created_at).toLocaleDateString() : 'N/A'}</span>
+                        <span>{userDetails.created_at ? new Date(userDetails.created_at).toLocaleDateString() : 'N/A'}</span>
                       </div>
                     </div>
                   </div>
@@ -255,7 +255,7 @@ export default function UsersPage() {
                       </div>
                       <div className="stat-card">
                         <div className="stat-value">
-                          GHS {(userDetails.user?.wallet_balance || 0).toFixed(2)}
+                          GHS {(userDetails.wallet_balance || 0).toFixed(2)}
                         </div>
                         <div className="stat-label">Wallet Balance</div>
                       </div>
