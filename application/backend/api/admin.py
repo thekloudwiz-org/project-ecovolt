@@ -1865,16 +1865,14 @@ def get_user_details(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'user': {
-                    'user_id': user_data['user_id'],
-                    'email': user_data['email'],
-                    'name': user_data['name'],
-                    'phone': user_data['phone'],
-                    'wallet_balance': float(user_data['wallet_balance']),
-                    'subscription': user_data['subscription'],
-                    'total_swaps': user_data.get('total_swaps', 0),
-                    'created_at': user_data['created_at'].isoformat() if user_data.get('created_at') else None
-                },
+                'user_id': user_data['user_id'],
+                'email': user_data['email'],
+                'name': user_data['name'],
+                'phone': user_data['phone'],
+                'wallet_balance': float(user_data['wallet_balance']),
+                'subscription': user_data['subscription'],
+                'total_swaps': user_data.get('total_swaps', 0),
+                'created_at': user_data['created_at'].isoformat() if user_data.get('created_at') else None,
                 'statistics': {
                     'total_swaps': swap_stats['total_swaps'],
                     'total_spent': float(swap_stats['total_spent']),
