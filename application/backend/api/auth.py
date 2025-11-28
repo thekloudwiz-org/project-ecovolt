@@ -1,6 +1,7 @@
 """
 Authentication API Endpoints
 Handles user registration, login, confirmation, and token refresh
+Updated: 2025-11-28 - Trigger backend deployment
 """
 
 import json
