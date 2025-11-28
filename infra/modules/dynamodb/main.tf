@@ -379,6 +379,100 @@ resource "aws_dynamodb_table" "swap_events" {
   )
 }
 
+# Bike Telemetry Table (time-series sensor data)
+resource "aws_dynamodb_table" "bike_telemetry" {
+  name             = "${var.project_name}-${var.environment}-bike-telemetry"
+  billing_mode     = var.billing_mode
+  hash_key         = "bikeId"
+  range_key        = "timestamp"
+  stream_enabled   = false # No stream needed for telemetry data
+  stream_view_type = null
+
+  read_capacity  = var.billing_mode == "PROVISIONED" ? var.telemetry_read_capacity : null
+  write_capacity = var.billing_mode == "PROVISIONED" ? var.telemetry_write_capacity : null
+
+  # Attributes
+  attribute {
+    name = "bikeId"
+    type = "S"
+  }
+
+  attribute {
+    name = "timestamp"
+    type = "N" # Unix timestamp in milliseconds
+  }
+
+  point_in_time_recovery {
+    enabled = var.enable_point_in_time_recovery
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = var.kms_key_arn
+  }
+
+  # TTL for old telemetry data (auto-delete after 90 days)
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name     = "${var.project_name}-${var.environment}-bike-telemetry"
+      DataType = "TimeSeries"
+    }
+  )
+}
+
+# Station Energy Telemetry Table (time-series energy data)
+resource "aws_dynamodb_table" "station_energy" {
+  name             = "${var.project_name}-${var.environment}-station-energy"
+  billing_mode     = var.billing_mode
+  hash_key         = "stationId"
+  range_key        = "timestamp"
+  stream_enabled   = false
+  stream_view_type = null
+
+  read_capacity  = var.billing_mode == "PROVISIONED" ? var.telemetry_read_capacity : null
+  write_capacity = var.billing_mode == "PROVISIONED" ? var.telemetry_write_capacity : null
+
+  # Attributes
+  attribute {
+    name = "stationId"
+    type = "S"
+  }
+
+  attribute {
+    name = "timestamp"
+    type = "N" # Unix timestamp in milliseconds
+  }
+
+  point_in_time_recovery {
+    enabled = var.enable_point_in_time_recovery
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = var.kms_key_arn
+  }
+
+  # TTL for old energy data (auto-delete after 90 days)
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name     = "${var.project_name}-${var.environment}-station-energy"
+      DataType = "TimeSeries"
+    }
+  )
+}
+
 # Auto-scaling for provisioned capacity (if enabled)
 resource "aws_appautoscaling_target" "stations_read" {
   count = var.billing_mode == "PROVISIONED" && var.enable_autoscaling ? 1 : 0

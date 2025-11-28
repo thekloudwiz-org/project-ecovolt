@@ -196,6 +196,19 @@ resource "aws_iam_role_policy" "lambda_processor" {
       {
         Effect = "Allow"
         Action = [
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:BatchWriteItem"
+        ]
+        Resource = [
+          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.bike_telemetry_table_name != "" ? var.bike_telemetry_table_name : "${var.project_name}-${var.environment}-bike-telemetry"}",
+          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.station_energy_table_name != "" ? var.station_energy_table_name : "${var.project_name}-${var.environment}-station-energy"}",
+          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.swap_events_table_name != "" ? var.swap_events_table_name : "${var.project_name}-${var.environment}-swap-events"}"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "s3:PutObject",
           "s3:GetObject"
         ]
@@ -226,8 +239,11 @@ resource "aws_lambda_function" "stream_processor" {
 
   environment {
     variables = {
-      # Telemetry data is now stored in DynamoDB tables (see dynamodb module)
-      # Tables: bike_telemetry, station_telemetry, swap_events
+      # DynamoDB tables for telemetry storage (replaces Timestream)
+      BIKE_TELEMETRY_TABLE = var.bike_telemetry_table_name != "" ? var.bike_telemetry_table_name : "${var.project_name}-${var.environment}-bike-telemetry"
+      STATION_ENERGY_TABLE = var.station_energy_table_name != "" ? var.station_energy_table_name : "${var.project_name}-${var.environment}-station-energy"
+      SWAP_EVENTS_TABLE    = var.swap_events_table_name != "" ? var.swap_events_table_name : "${var.project_name}-${var.environment}-swap-events"
+      # Legacy environment variables (kept for compatibility)
       DATA_LAKE_BUCKET = aws_s3_bucket.data_lake.id
       KINESIS_STREAM   = aws_kinesis_stream.telemetry.name
     }

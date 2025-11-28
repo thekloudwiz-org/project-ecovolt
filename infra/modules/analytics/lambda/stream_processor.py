@@ -1,6 +1,6 @@
 """
-Lambda function for processing Kinesis stream data and writing to Timestream.
-This function consumes telemetry data from Kinesis and writes it to appropriate Timestream tables.
+Lambda function for processing Kinesis stream data and writing to DynamoDB.
+This function consumes telemetry data from Kinesis and writes it to appropriate DynamoDB tables.
 """
 
 import json
@@ -8,15 +8,20 @@ import os
 import base64
 import boto3
 from datetime import datetime
+from decimal import Decimal
 
-# Initialize Timestream client
-timestream_write = boto3.client('timestream-write')
+# Initialize DynamoDB client
+dynamodb = boto3.resource('dynamodb')
 
 # Environment variables
-TIMESTREAM_DATABASE = os.environ['TIMESTREAM_DATABASE']
-BIKE_TABLE = os.environ['BIKE_TABLE']
-STATION_TABLE = os.environ['STATION_TABLE']
-SWAP_TABLE = os.environ['SWAP_TABLE']
+BIKE_TELEMETRY_TABLE = os.environ.get('BIKE_TELEMETRY_TABLE', 'ecovolt-dev-bike-telemetry')
+STATION_ENERGY_TABLE = os.environ.get('STATION_ENERGY_TABLE', 'ecovolt-dev-station-energy')
+SWAP_EVENTS_TABLE = os.environ.get('SWAP_EVENTS_TABLE', 'ecovolt-dev-swap-events')
+
+# Get DynamoDB tables
+bike_telemetry_table = dynamodb.Table(BIKE_TELEMETRY_TABLE)
+station_energy_table = dynamodb.Table(STATION_ENERGY_TABLE)
+swap_events_table = dynamodb.Table(SWAP_EVENTS_TABLE)
 
 
 def handler(event, context):
@@ -67,105 +72,99 @@ def handler(event, context):
     }
 
 
+def convert_floats_to_decimal(obj):
+    """Convert float values to Decimal for DynamoDB compatibility."""
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    elif isinstance(obj, dict):
+        return {k: convert_floats_to_decimal(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_floats_to_decimal(item) for item in obj]
+    return obj
+
+
 def write_bike_telemetry(data):
-    """Write bike telemetry to Timestream."""
-    current_time = str(int(datetime.now().timestamp() * 1000))
-    
-    records = [
-        {
-            'Dimensions': [
-                {'Name': 'bikeId', 'Value': data['bikeId']},
-                {'Name': 'type', 'Value': 'telemetry'}
-            ],
-            'MeasureName': 'battery_soc',
-            'MeasureValue': str(data['battery']['stateOfCharge']),
-            'MeasureValueType': 'DOUBLE',
-            'Time': current_time
-        },
-        {
-            'Dimensions': [
-                {'Name': 'bikeId', 'Value': data['bikeId']},
-                {'Name': 'type', 'Value': 'telemetry'}
-            ],
-            'MeasureName': 'battery_voltage',
-            'MeasureValue': str(data['battery']['voltage']),
-            'MeasureValueType': 'DOUBLE',
-            'Time': current_time
-        },
-        {
-            'Dimensions': [
-                {'Name': 'bikeId', 'Value': data['bikeId']},
-                {'Name': 'type', 'Value': 'telemetry'}
-            ],
-            'MeasureName': 'speed',
-            'MeasureValue': str(data['speed']),
-            'MeasureValueType': 'DOUBLE',
-            'Time': current_time
-        }
-    ]
-    
-    timestream_write.write_records(
-        DatabaseName=TIMESTREAM_DATABASE,
-        TableName=BIKE_TABLE,
-        Records=records
-    )
+    """Write bike telemetry to DynamoDB."""
+    # Get timestamp (milliseconds)
+    if 'timestamp' in data:
+        timestamp = int(datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).timestamp() * 1000)
+    else:
+        timestamp = int(datetime.now().timestamp() * 1000)
+
+    # Calculate TTL (90 days from now)
+    ttl = int((datetime.now().timestamp() + (90 * 24 * 60 * 60)))
+
+    # Prepare item for DynamoDB
+    item = {
+        'bikeId': data['bikeId'],
+        'timestamp': timestamp,
+        'ttl': ttl,
+        'battery': convert_floats_to_decimal(data.get('battery', {})),
+        'location': convert_floats_to_decimal(data.get('location', {})),
+        'speed': convert_floats_to_decimal(data.get('speed', 0)),
+        'odometer': data.get('odometer', 0),
+        'recordedAt': data.get('timestamp', datetime.now().isoformat())
+    }
+
+    # Write to DynamoDB
+    bike_telemetry_table.put_item(Item=item)
+    print(f"Wrote bike telemetry for {data['bikeId']} at {timestamp}")
 
 
 def write_station_energy(data):
-    """Write station energy data to Timestream."""
-    current_time = str(int(datetime.now().timestamp() * 1000))
-    
-    records = [
-        {
-            'Dimensions': [
-                {'Name': 'stationId', 'Value': data['stationId']},
-                {'Name': 'type', 'Value': 'energy'}
-            ],
-            'MeasureName': 'solar_power',
-            'MeasureValue': str(data['solar']['powerGenerated']),
-            'MeasureValueType': 'DOUBLE',
-            'Time': current_time
-        },
-        {
-            'Dimensions': [
-                {'Name': 'stationId', 'Value': data['stationId']},
-                {'Name': 'type', 'Value': 'energy'}
-            ],
-            'MeasureName': 'grid_consumed',
-            'MeasureValue': str(data['grid']['powerConsumed']),
-            'MeasureValueType': 'DOUBLE',
-            'Time': current_time
-        }
-    ]
-    
-    timestream_write.write_records(
-        DatabaseName=TIMESTREAM_DATABASE,
-        TableName=STATION_TABLE,
-        Records=records
-    )
+    """Write station energy data to DynamoDB."""
+    # Get timestamp (milliseconds)
+    if 'timestamp' in data:
+        timestamp = int(datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).timestamp() * 1000)
+    else:
+        timestamp = int(datetime.now().timestamp() * 1000)
+
+    # Calculate TTL (90 days from now)
+    ttl = int((datetime.now().timestamp() + (90 * 24 * 60 * 60)))
+
+    # Prepare item for DynamoDB
+    item = {
+        'stationId': data['stationId'],
+        'timestamp': timestamp,
+        'ttl': ttl,
+        'solar': convert_floats_to_decimal(data.get('solar', {})),
+        'grid': convert_floats_to_decimal(data.get('grid', {})),
+        'inventory': convert_floats_to_decimal(data.get('inventory', {})),
+        'recordedAt': data.get('timestamp', datetime.now().isoformat())
+    }
+
+    # Write to DynamoDB
+    station_energy_table.put_item(Item=item)
+    print(f"Wrote station energy for {data['stationId']} at {timestamp}")
 
 
 def write_swap_event(data):
-    """Write swap event to Timestream."""
-    current_time = str(int(datetime.now().timestamp() * 1000))
-    
-    records = [
-        {
-            'Dimensions': [
-                {'Name': 'swapId', 'Value': data['swapId']},
-                {'Name': 'stationId', 'Value': data['stationId']},
-                {'Name': 'bikeId', 'Value': data['bikeId']},
-                {'Name': 'type', 'Value': 'swap'}
-            ],
-            'MeasureName': 'duration',
-            'MeasureValue': str(data['duration']),
-            'MeasureValueType': 'BIGINT',
-            'Time': current_time
-        }
-    ]
-    
-    timestream_write.write_records(
-        DatabaseName=TIMESTREAM_DATABASE,
-        TableName=SWAP_TABLE,
-        Records=records
-    )
+    """Write swap event to DynamoDB."""
+    # Get timestamp (milliseconds)
+    if 'timestamp' in data:
+        timestamp = int(datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).timestamp() * 1000)
+    else:
+        timestamp = int(datetime.now().timestamp() * 1000)
+
+    # Calculate TTL (90 days from now)
+    ttl = int((datetime.now().timestamp() + (90 * 24 * 60 * 60)))
+
+    # Prepare item for DynamoDB
+    item = {
+        'swapId': data['swapId'],
+        'timestamp': timestamp,
+        'ttl': ttl,
+        'bikeId': data.get('bikeId', ''),
+        'stationId': data.get('stationId', ''),
+        'userId': data.get('userId', ''),
+        'removedBatteryId': data.get('removedBatteryId', ''),
+        'installedBatteryId': data.get('installedBatteryId', ''),
+        'duration': data.get('duration', 0),
+        'cost': convert_floats_to_decimal(data.get('cost', 0)),
+        'paymentMethod': data.get('paymentMethod', ''),
+        'recordedAt': data.get('timestamp', datetime.now().isoformat())
+    }
+
+    # Write to DynamoDB
+    swap_events_table.put_item(Item=item)
+    print(f"Wrote swap event {data['swapId']} at {timestamp}")

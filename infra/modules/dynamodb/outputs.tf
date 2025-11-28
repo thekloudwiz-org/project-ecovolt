@@ -80,6 +80,28 @@ output "swap_events_table_stream_arn" {
   value       = aws_dynamodb_table.swap_events.stream_arn
 }
 
+# Bike Telemetry Table
+output "bike_telemetry_table_name" {
+  description = "Name of the bike telemetry table"
+  value       = aws_dynamodb_table.bike_telemetry.name
+}
+
+output "bike_telemetry_table_arn" {
+  description = "ARN of the bike telemetry table"
+  value       = aws_dynamodb_table.bike_telemetry.arn
+}
+
+# Station Energy Table
+output "station_energy_table_name" {
+  description = "Name of the station energy table"
+  value       = aws_dynamodb_table.station_energy.name
+}
+
+output "station_energy_table_arn" {
+  description = "ARN of the station energy table"
+  value       = aws_dynamodb_table.station_energy.arn
+}
+
 # All table names (for Lambda environment variables)
 output "all_table_names" {
   description = "Map of all table names"
@@ -89,6 +111,8 @@ output "all_table_names" {
     bike_status       = aws_dynamodb_table.bike_status.name
     battery_inventory = aws_dynamodb_table.battery_inventory.name
     swap_events       = aws_dynamodb_table.swap_events.name
+    bike_telemetry    = aws_dynamodb_table.bike_telemetry.name
+    station_energy    = aws_dynamodb_table.station_energy.name
   }
 }
 
@@ -100,7 +124,9 @@ output "all_table_arns" {
     aws_dynamodb_table.user_profiles.arn,
     aws_dynamodb_table.bike_status.arn,
     aws_dynamodb_table.battery_inventory.arn,
-    aws_dynamodb_table.swap_events.arn
+    aws_dynamodb_table.swap_events.arn,
+    aws_dynamodb_table.bike_telemetry.arn,
+    aws_dynamodb_table.station_energy.arn
   ]
 }
 

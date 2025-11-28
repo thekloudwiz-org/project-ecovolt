@@ -82,6 +82,18 @@ variable "swap_events_write_capacity" {
   default     = 10
 }
 
+variable "telemetry_read_capacity" {
+  description = "Read capacity units for telemetry tables (bike-telemetry and station-energy)"
+  type        = number
+  default     = 10
+}
+
+variable "telemetry_write_capacity" {
+  description = "Write capacity units for telemetry tables (bike-telemetry and station-energy)"
+  type        = number
+  default     = 20
+}
+
 variable "gsi_read_capacity" {
   description = "Read capacity units for GSIs"
   type        = number

@@ -101,7 +101,14 @@ module "analytics" {
   environment  = var.environment
   kms_key_arn  = module.security.kms_key_arn
 
+  # DynamoDB table names for telemetry storage
+  bike_telemetry_table_name = module.dynamodb.bike_telemetry_table_name
+  station_energy_table_name = module.dynamodb.station_energy_table_name
+  swap_events_table_name    = module.dynamodb.swap_events_table_name
+
   tags = local.common_tags
+
+  depends_on = [module.dynamodb]
 }
 
 # Database Module

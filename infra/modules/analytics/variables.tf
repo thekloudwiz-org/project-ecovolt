@@ -161,3 +161,22 @@ variable "alarm_sns_topic_arns" {
   type        = list(string)
   default     = []
 }
+
+# DynamoDB Table Names (for stream processor Lambda)
+variable "bike_telemetry_table_name" {
+  description = "Name of the DynamoDB bike telemetry table"
+  type        = string
+  default     = ""
+}
+
+variable "station_energy_table_name" {
+  description = "Name of the DynamoDB station energy table"
+  type        = string
+  default     = ""
+}
+
+variable "swap_events_table_name" {
+  description = "Name of the DynamoDB swap events table"
+  type        = string
+  default     = ""
+}
