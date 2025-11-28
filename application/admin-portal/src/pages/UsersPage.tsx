@@ -212,24 +212,24 @@ export default function UsersPage() {
                     <div className="details-grid">
                       <div className="detail-item">
                         <label>User ID:</label>
-                        <span>{userDetails.user_id}</span>
+                        <span>{userDetails.user_id || 'N/A'}</span>
                       </div>
                       <div className="detail-item">
                         <label>Name:</label>
-                        <span>{userDetails.name}</span>
+                        <span>{userDetails.name || 'N/A'}</span>
                       </div>
                       <div className="detail-item">
                         <label>Email:</label>
-                        <span>{userDetails.email}</span>
+                        <span>{userDetails.email || 'N/A'}</span>
                       </div>
                       <div className="detail-item">
                         <label>Phone:</label>
-                        <span>{userDetails.phone}</span>
+                        <span>{userDetails.phone || 'N/A'}</span>
                       </div>
                       <div className="detail-item">
                         <label>Subscription:</label>
-                        <span className={`subscription-badge subscription-${userDetails.subscription}`}>
-                          {userDetails.subscription}
+                        <span className={`subscription-badge subscription-${userDetails.subscription || 'free'}`}>
+                          {userDetails.subscription || 'Free'}
                         </span>
                       </div>
                       <div className="detail-item">
