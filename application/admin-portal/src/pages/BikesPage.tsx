@@ -409,11 +409,63 @@ export default function BikesPage() {
                   style={{ width: '100%', padding: '8px', fontSize: '14px' }}
                 >
                   <option value="">-- Select a user --</option>
-                  {usersData?.users?.map((user) => (
-                    <option key={user.user_id} value={user.user_id}>
-                      {user.email} - {user.name || 'No name'}
-                    </option>
-                  ))}
+                  {usersData?.users && (() => {
+                    // Exclude admin users
+                    const nonAdminUsers = usersData.users.filter(
+                      u => u.subscription?.toLowerCase() !== 'admin'
+                    )
+
+                    // Count bikes per user
+                    const userBikeCounts = new Map<string, number>()
+                    data?.bikes?.forEach(bike => {
+                      if (bike.user_id && bike.status === 'active') {
+                        userBikeCounts.set(
+                          bike.user_id,
+                          (userBikeCounts.get(bike.user_id) || 0) + 1
+                        )
+                      }
+                    })
+
+                    // Separate users with and without bikes
+                    const usersWithBikes = nonAdminUsers
+                      .filter(u => userBikeCounts.has(u.user_id))
+                      .sort((a, b) => {
+                        const countA = userBikeCounts.get(a.user_id) || 0
+                        const countB = userBikeCounts.get(b.user_id) || 0
+                        return countB - countA // Sort by bike count descending
+                      })
+
+                    const usersWithoutBikes = nonAdminUsers
+                      .filter(u => !userBikeCounts.has(u.user_id))
+                      .sort((a, b) => a.email.localeCompare(b.email))
+
+                    return (
+                      <>
+                        {usersWithoutBikes.length > 0 && (
+                          <optgroup label="📗 Users Without Bikes">
+                            {usersWithoutBikes.map(user => (
+                              <option key={user.user_id} value={user.user_id}>
+                                {user.email} - {user.name || 'No name'}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {usersWithBikes.length > 0 && (
+                          <optgroup label="📘 Users With Assigned Bikes">
+                            {usersWithBikes.map(user => {
+                              const bikeCount = userBikeCounts.get(user.user_id) || 0
+                              return (
+                                <option key={user.user_id} value={user.user_id}>
+                                  {user.email} - {user.name || 'No name'} ×{bikeCount}
+                                </option>
+                              )
+                            })}
+                          </optgroup>
+                        )}
+                      </>
+                    )
+                  })()}
                 </select>
                 <small style={{ color: '#666', marginTop: '8px', display: 'block' }}>
                   Users can own multiple bikes. Each bike can only be assigned to one user.
