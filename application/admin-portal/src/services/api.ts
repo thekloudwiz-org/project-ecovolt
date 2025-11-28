@@ -250,7 +250,7 @@ export const createUser = async (userData: {
 }): Promise<{ user: User; temporary_password: string }> => {
   const headers = await getAuthHeaders()
   const response = await post({
-    apiName: 'auth',
+    apiName: API_NAME,
     path: '/auth/admin/create-user',
     options: { headers, body: userData as any },
   }).response
