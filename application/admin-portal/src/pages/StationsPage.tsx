@@ -63,6 +63,32 @@ export default function StationsPage() {
     mutationFn: deleteStation,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stations'] })
+      setMessageModal({
+        type: 'success',
+        message: 'Station deleted successfully!'
+      })
+    },
+    onError: (error: Error) => {
+      setMessageModal({
+        type: 'error',
+        message: `Failed to delete station: ${error.message}`
+      })
+    },
+  })
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
+      return updateStation(id, { status: newStatus })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stations'] })
+    },
+    onError: (error: Error) => {
+      setMessageModal({
+        type: 'error',
+        message: `Failed to update station status: ${error.message}`
+      })
     },
   })
 
@@ -125,10 +151,14 @@ export default function StationsPage() {
     setSelectedLng(undefined)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this station?')) {
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`Are you sure you want to permanently delete "${name}"? This action cannot be undone.`)) {
       deleteMutation.mutate(id)
     }
+  }
+
+  const handleToggleStatus = (id: string, currentStatus: string) => {
+    toggleStatusMutation.mutate({ id, currentStatus })
   }
 
   const filteredStations = data?.stations.filter((station: Station) =>
@@ -192,15 +222,50 @@ export default function StationsPage() {
                       <td>{station.address}</td>
                       <td>{formatOperatingHours(station.operating_hours)}</td>
                       <td>
-                        <span className={`status-badge status-${station.status}`}>
-                          {station.status}
-                        </span>
+                        <button
+                          onClick={() => handleToggleStatus(station.station_id, station.status)}
+                          disabled={toggleStatusMutation.isPending}
+                          style={{
+                            padding: '6px 16px',
+                            border: 'none',
+                            borderRadius: '20px',
+                            cursor: toggleStatusMutation.isPending ? 'not-allowed' : 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            transition: 'all 0.2s',
+                            backgroundColor: station.status === 'active' ? '#4caf50' : '#9e9e9e',
+                            color: 'white'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!toggleStatusMutation.isPending) {
+                              e.currentTarget.style.opacity = '0.8'
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1'
+                          }}
+                        >
+                          {station.status === 'active' ? '✓ Active' : '○ Inactive'}
+                        </button>
                       </td>
                       <td>
                         <button className="btn-icon" onClick={() => handleModalOpen(station)}>
                           Edit
                         </button>
-                        <button className="btn-icon" onClick={() => handleDelete(station.station_id)}>
+                        <button 
+                          className="btn-icon" 
+                          onClick={() => handleDelete(station.station_id, station.name)}
+                          style={{ 
+                            color: '#f44336',
+                            borderColor: '#f44336'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffebee'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white'
+                          }}
+                        >
                           Delete
                         </button>
                       </td>
