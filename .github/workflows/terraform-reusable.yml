@@ -289,31 +289,11 @@ jobs:
           terraform init \
             -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
 
-      - name: Refresh State
+      - name: Terraform Apply (Direct)
         run: |
           cd ${{ inputs.working_directory }}
-          terraform refresh -var-file=environments/${{ inputs.environment }}.tfvars
-
-      - name: Verify Plan is Still Valid
-        id: verify
-        run: |
-          cd ${{ inputs.working_directory }}
-          # Check if the plan file is compatible with current state
-          terraform show ${{ inputs.environment }}.tfplan > /dev/null 2>&1
-          if [ $? -ne 0 ]; then
-            echo "::error::Plan file is no longer valid. State may have changed since plan was created."
-            echo "valid=false" >> $GITHUB_OUTPUT
-            exit 1
-          else
-            echo "valid=true" >> $GITHUB_OUTPUT
-          fi
-        continue-on-error: true
-
-      - name: Terraform Apply
-        if: steps.verify.outputs.valid == 'true'
-        run: |
-          cd ${{ inputs.working_directory }}
-          terraform apply -auto-approve ${{ inputs.environment }}.tfplan
+          terraform apply -auto-approve \
+            -var-file=environments/${{ inputs.environment }}.tfvars
       
       - name: Terraform Output
         id: terraform-output
