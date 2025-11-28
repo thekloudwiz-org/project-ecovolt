@@ -55,6 +55,7 @@ export default function BikesPage() {
       assignBike(bikeId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bikes'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
       setShowAssignModal(false)
       setSelectedBike(null)
       setMessageModal({
@@ -62,12 +63,14 @@ export default function BikesPage() {
         message: 'Bike has been successfully assigned to the user!'
       })
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       setShowAssignModal(false)
       setSelectedBike(null)
+      // Check if it's a "bike already assigned" error
+      const errorMessage = error.message || 'Failed to assign bike. Please try again.'
       setMessageModal({
         type: 'error',
-        message: error.message || 'Failed to assign bike. Please try again.'
+        message: errorMessage
       })
     },
   })
@@ -259,7 +262,7 @@ export default function BikesPage() {
                         Assign
                       </button>
                     )}
-                    {bike.user_id && (
+                    {bike.status === 'active' && bike.user_id && (
                       <button className="btn-icon" onClick={() => handleUnassign(bike)}>
                         Unassign
                       </button>
@@ -271,7 +274,7 @@ export default function BikesPage() {
                         style={{ opacity: 0.5, cursor: 'not-allowed' }}
                         title={`Cannot assign ${bike.status} bike`}
                       >
-                        Assign
+                        {bike.user_id ? 'Unassign' : 'Assign'}
                       </button>
                     )}
                   </div>
@@ -406,42 +409,14 @@ export default function BikesPage() {
                   style={{ width: '100%', padding: '8px', fontSize: '14px' }}
                 >
                   <option value="">-- Select a user --</option>
-
-                  {/* Unassigned Users */}
-                  {usersData?.users && (() => {
-                    const assignedUserIds = new Set(
-                      data?.bikes?.filter(b => b.user_id && b.status === 'active').map(b => b.user_id) || []
-                    )
-                    const unassignedUsers = usersData.users.filter(u => !assignedUserIds.has(u.user_id))
-                    const assignedUsers = usersData.users.filter(u => assignedUserIds.has(u.user_id))
-
-                    return (
-                      <>
-                        {unassignedUsers.length > 0 && (
-                          <optgroup label="📗 Available Users (No Active Bike)">
-                            {unassignedUsers.map(user => (
-                              <option key={user.user_id} value={user.user_id}>
-                                {user.email} - {user.name || 'No name'}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-
-                        {assignedUsers.length > 0 && (
-                          <optgroup label="📕 Already Assigned (Has Active Bike)">
-                            {assignedUsers.map(user => (
-                              <option key={user.user_id} value={user.user_id}>
-                                {user.email} - {user.name || 'No name'}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </>
-                    )
-                  })()}
+                  {usersData?.users?.map((user) => (
+                    <option key={user.user_id} value={user.user_id}>
+                      {user.email} - {user.name || 'No name'}
+                    </option>
+                  ))}
                 </select>
                 <small style={{ color: '#666', marginTop: '8px', display: 'block' }}>
-                  Users with active bikes will be prevented from receiving another bike
+                  Users can own multiple bikes. Each bike can only be assigned to one user.
                 </small>
               </div>
               <div className="modal-actions">

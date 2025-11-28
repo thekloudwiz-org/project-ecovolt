@@ -1485,26 +1485,6 @@ def assign_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     })
                 }
 
-            # Check if user already has an active bike assigned
-            cursor.execute(
-                """
-                SELECT bike_id, model
-                FROM bikes
-                WHERE user_id = %s AND status = 'active'
-                """,
-                (user_id,)
-            )
-            existing_bike = cursor.fetchone()
-
-            if existing_bike:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({
-                        'error': 'User already has an active bike assigned',
-                        'details': f'User {user_id} is already assigned bike {existing_bike["bike_id"]} ({existing_bike["model"]}). Please unassign or deactivate the existing bike first.'
-                    })
-                }
-
             # Verify bike is active and not already assigned
             cursor.execute(
                 """
@@ -1530,6 +1510,15 @@ def assign_bike(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps({
                         'error': 'Cannot assign inactive bike',
                         'details': f'Bike status is "{bike_check["status"]}". Only active bikes can be assigned.'
+                    })
+                }
+
+            if bike_check['user_id']:
+                return {
+                    'statusCode': 409,
+                    'body': json.dumps({
+                        'error': 'Bike already assigned',
+                        'details': f'Bike {bike_id} is already assigned to user {bike_check["user_id"]}. Cannot assign a bike to multiple users. If you are sure of this, unassign previous owner.'
                     })
                 }
 
