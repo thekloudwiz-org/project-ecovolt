@@ -289,7 +289,13 @@ jobs:
           terraform init \
             -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
 
-      - name: Terraform Apply (Direct)
+      - name: Refresh State (Sync with AWS)
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform apply -refresh-only -auto-approve \
+            -var-file=environments/${{ inputs.environment }}.tfvars
+
+      - name: Terraform Apply
         run: |
           cd ${{ inputs.working_directory }}
           terraform apply -auto-approve \
