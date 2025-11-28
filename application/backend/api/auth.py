@@ -320,3 +320,131 @@ def refresh(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'message': str(e) if os.getenv('ENVIRONMENT') == 'dev' else 'An error occurred'
             })
         }
+
+
+def admin_create_user_endpoint(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    POST /auth/admin/create-user
+    Admin creates a new user with temporary password
+    
+    Requirements: 8.1
+    """
+    try:
+        from utils.auth import admin_create_user
+        from utils.validators import validate_email, validate_phone_number
+        
+        # Parse request body
+        body = json.loads(event.get('body', '{}'))
+        email = body.get('email', '').strip()
+        name = body.get('name', '').strip()
+        phone = body.get('phone', '').strip()
+        subscription = body.get('subscription', 'basic').lower()
+        
+        # Validate required fields
+        if not all([email, name, phone]):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Missing required fields',
+                    'details': 'email, name, and phone are required'
+                })
+            }
+        
+        # Validate email format
+        if not validate_email(email):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Invalid email format'
+                })
+            }
+        
+        # Validate phone number
+        if not validate_phone_number(phone):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Invalid phone number',
+                    'details': 'Phone number must be in format +233XXXXXXXXX'
+                })
+            }
+        
+        # Validate subscription
+        if subscription not in ['basic', 'premium']:
+            subscription = 'basic'
+        
+        # Create user in Cognito
+        result = admin_create_user(email, name, phone, subscription)
+        if not result:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'error': 'Failed to create user',
+                    'details': 'Could not create user in authentication service'
+                })
+            }
+        
+        # Create user record in database
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Check if user already exists
+            cursor.execute(Queries.GET_USER_BY_EMAIL, (email,))
+            existing = cursor.fetchone()
+            
+            if existing:
+                return {
+                    'statusCode': 409,
+                    'body': json.dumps({
+                        'error': 'User already exists',
+                        'details': f'A user with email {email} already exists'
+                    })
+                }
+            
+            # Insert new user
+            cursor.execute(
+                """
+                INSERT INTO users (user_id, email, name, phone, subscription, wallet_balance, total_swaps, created_at)
+                VALUES (%s, %s, %s, %s, %s, 0, 0, NOW())
+                RETURNING *
+                """,
+                (result['user_id'], email, name, phone, subscription)
+            )
+            user = cursor.fetchone()
+        
+        return {
+            'statusCode': 201,
+            'body': json.dumps({
+                'message': 'User created successfully',
+                'user': {
+                    'user_id': user['user_id'],
+                    'email': user['email'],
+                    'name': user['name'],
+                    'phone': user['phone'],
+                    'subscription': user['subscription'],
+                    'wallet_balance': float(user['wallet_balance']),
+                    'created_at': user['created_at'].isoformat() if user.get('created_at') else None
+                },
+                'temporary_password': result['temporary_password'],
+                'note': 'User must change password on first login'
+            })
+        }
+        
+    except json.JSONDecodeError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'error': 'Invalid JSON in request body'
+            })
+        }
+    except Exception as e:
+        print(f"Error in admin create user: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': 'Internal server error',
+                'message': str(e) if os.getenv('ENVIRONMENT') == 'dev' else 'An error occurred'
+            })
+        }

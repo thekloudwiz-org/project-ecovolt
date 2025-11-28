@@ -242,6 +242,27 @@ export const adjustWalletBalance = async (
   }).response
 }
 
+export const createUser = async (userData: {
+  email: string
+  name: string
+  phone: string
+  subscription: string
+}): Promise<{ user: User; temporary_password: string }> => {
+  const headers = await getAuthHeaders()
+  const response = await post({
+    apiName: 'auth',
+    path: '/auth/admin/create-user',
+    options: { headers, body: userData as any },
+  }).response
+  const data = await response.body.json()
+  
+  if ((data as any).error) {
+    throw new Error((data as any).details || (data as any).error)
+  }
+  
+  return data as any
+}
+
 // Analytics
 export const getAnalytics = async (startDate: string, endDate: string): Promise<TimeSeriesAnalytics> => {
   const headers = await getAuthHeaders()

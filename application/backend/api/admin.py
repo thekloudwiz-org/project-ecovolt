@@ -1997,3 +1997,107 @@ def adjust_user_wallet(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'message': str(e) if os.getenv('ENVIRONMENT') == 'dev' else 'An error occurred'
             })
         }
+
+
+def create_user(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    POST /admin/users
+    Admin creates a new user
+    
+    Requirements: 8.1
+    """
+    try:
+        # Get authenticated user
+        user = event.get('user')
+        if not user:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({
+                    'error': 'Unauthorized',
+                    'details': 'Authentication required'
+                })
+            }
+        
+        # Verify admin role
+        if not check_admin_role(user):
+            return {
+                'statusCode': 403,
+                'body': json.dumps({
+                    'error': 'Forbidden',
+                    'details': 'Admin access required'
+                })
+            }
+        
+        # Parse request body
+        body = json.loads(event.get('body', '{}'))
+        email = body.get('email', '').strip()
+        name = body.get('name', '').strip()
+        phone = body.get('phone', '').strip()
+        subscription = body.get('subscription', 'basic').lower()
+        
+        # Validate required fields
+        if not all([email, name, phone]):
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Missing required fields',
+                    'details': 'email, name, and phone are required'
+                })
+            }
+        
+        # Validate subscription
+        if subscription not in ['basic', 'premium']:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Invalid subscription',
+                    'details': 'subscription must be "basic" or "premium"'
+                })
+            }
+        
+        # Check if user already exists in database
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(Queries.GET_USER_BY_EMAIL, (email,))
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                return {
+                    'statusCode': 409,
+                    'body': json.dumps({
+                        'error': 'User already exists',
+                        'details': f'A user with email {email} already exists'
+                    })
+                }
+        
+        # This endpoint needs to call Cognito, so it should be handled by auth Lambda
+        # Return a special response that tells the API Gateway to route to auth Lambda
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'action': 'create_user_via_auth_lambda',
+                'email': email,
+                'name': name,
+                'phone': phone,
+                'subscription': subscription
+            })
+        }
+        
+    except json.JSONDecodeError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'error': 'Invalid JSON in request body'
+            })
+        }
+    except Exception as e:
+        print(f"Error creating user: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': 'Internal server error',
+                'message': str(e) if os.getenv('ENVIRONMENT') == 'dev' else 'An error occurred'
+            })
+        }

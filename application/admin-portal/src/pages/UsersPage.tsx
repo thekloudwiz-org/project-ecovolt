@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUsers, getUser, adjustWalletBalance } from '../services/api'
+import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
+import { getUsers, getUser, adjustWalletBalance, createUser } from '../services/api'
+import MessageModal from '../components/MessageModal'
 import './UsersPage.css'
 
 export default function UsersPage() {
@@ -9,7 +10,9 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [messageModal, setMessageModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Fetch users
   const { data, isLoading, error } = useQuery({
@@ -28,6 +31,25 @@ export default function UsersPage() {
     enabled: !!selectedUserId && showDetailsModal,
   })
 
+  // Create user mutation
+  const createMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setShowCreateModal(false)
+      setMessageModal({
+        type: 'success',
+        message: `User created successfully!\n\nEmail: ${data.user.email}\nTemporary Password: ${data.temporary_password}\n\nUser must change password on first login.`
+      })
+    },
+    onError: (error: Error) => {
+      setMessageModal({
+        type: 'error',
+        message: error.message || 'Failed to create user. Please try again.'
+      })
+    },
+  })
+
   // Wallet adjustment mutation
   const walletMutation = useMutation({
     mutationFn: ({
@@ -43,6 +65,16 @@ export default function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['user', selectedUserId] })
       setShowWalletModal(false)
+      setMessageModal({
+        type: 'success',
+        message: 'Wallet balance adjusted successfully!'
+      })
+    },
+    onError: (error: Error) => {
+      setMessageModal({
+        type: 'error',
+        message: error.message || 'Failed to adjust wallet balance.'
+      })
     },
   })
 
@@ -65,6 +97,18 @@ export default function UsersPage() {
   const openWalletModal = (userId: string) => {
     setSelectedUserId(userId)
     setShowWalletModal(true)
+  }
+
+  const handleCreateUser = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    
+    createMutation.mutate({
+      email: formData.get('email') as string,
+      name: formData.get('name') as string,
+      phone: formData.get('phone') as string,
+      subscription: formData.get('subscription') as string,
+    })
   }
 
   const closeDetailsModal = () => {
@@ -97,6 +141,9 @@ export default function UsersPage() {
     <div className="users-page">
       <div className="page-header">
         <h1 className="page-title">User Management</h1>
+        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+          + Add User
+        </button>
       </div>
 
       {/* Search */}
@@ -345,6 +392,97 @@ export default function UsersPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Add New User</h2>
+              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleCreateUser}>
+              <div className="form-group">
+                <label htmlFor="name">Full Name *</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="e.g., John Doe"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="email">Email *</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  placeholder="e.g., john.doe@example.com"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="phone">Phone Number *</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  required
+                  placeholder="+233XXXXXXXXX"
+                  pattern="\+233[0-9]{9}"
+                />
+                <small>Format: +233XXXXXXXXX (Ghana)</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="subscription">Subscription Tier *</label>
+                <select id="subscription" name="subscription" required defaultValue="basic">
+                  <option value="basic">Basic</option>
+                  <option value="premium">Premium</option>
+                </select>
+                <small>Initial wallet balance will be GHS 0.00</small>
+              </div>
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#e3f2fd', 
+                borderRadius: '6px', 
+                marginBottom: '16px',
+                fontSize: '14px',
+                color: '#1976d2'
+              }}>
+                ℹ️ A temporary password will be generated and shown after creation. The user must change it on first login.
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={createMutation.isPending}
+                >
+                  {createMutation.isPending ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Message Modal */}
+      {messageModal && (
+        <MessageModal
+          type={messageModal.type}
+          message={messageModal.message}
+          onClose={() => setMessageModal(null)}
+        />
       )}
     </div>
   )

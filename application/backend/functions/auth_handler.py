@@ -14,6 +14,7 @@ AUTH_ROUTES = {
     'POST /auth/login': auth.login,
     'POST /auth/confirm': auth.confirm,
     'POST /auth/refresh': auth.refresh,
+    'POST /auth/admin/create-user': auth.admin_create_user_endpoint,
 }
 
 

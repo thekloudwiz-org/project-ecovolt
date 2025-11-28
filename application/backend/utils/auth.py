@@ -404,3 +404,73 @@ def refresh_token(refresh_token: str) -> Optional[Dict]:
     except Exception as e:
         print(f"Error refreshing token: {str(e)}")
         return None
+
+
+def admin_create_user(email: str, name: str, phone: str, subscription: str = 'basic') -> Optional[Dict[str, Any]]:
+    """
+    Admin creates a new user in Cognito with temporary password
+    
+    ⚠️  WARNING: Makes HTTPS calls to Cognito API
+    ⚠️  ONLY use in auth_handler Lambda (deployed outside VPC)
+    
+    Args:
+        email: User email
+        name: User full name
+        phone: User phone number
+        subscription: Initial subscription tier (basic/premium)
+        
+    Returns:
+        Dict with user_id and temporary_password if successful, None otherwise
+    """
+    try:
+        import boto3
+        import secrets
+        import string
+        
+        cognito = boto3.client('cognito-idp', region_name=COGNITO_REGION)
+        
+        # Generate secure temporary password (meets Cognito requirements)
+        # Min 8 chars, uppercase, lowercase, number, special char
+        password_chars = (
+            secrets.choice(string.ascii_uppercase) +
+            secrets.choice(string.ascii_lowercase) +
+            secrets.choice(string.digits) +
+            secrets.choice('!@#$%^&*') +
+            ''.join(secrets.choice(string.ascii_letters + string.digits + '!@#$%^&*') for _ in range(8))
+        )
+        # Shuffle to randomize position of required characters
+        temp_password = ''.join(secrets.SystemRandom().sample(password_chars, len(password_chars)))
+        
+        # Create user with admin privileges
+        response = cognito.admin_create_user(
+            UserPoolId=USER_POOL_ID,
+            Username=email,
+            UserAttributes=[
+                {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},  # Auto-verify
+                {'Name': 'name', 'Value': name},
+                {'Name': 'phone_number', 'Value': phone},
+                {'Name': 'custom:subscription', 'Value': subscription}
+            ],
+            TemporaryPassword=temp_password,
+            MessageAction='SUPPRESS',  # Don't send Cognito email, we'll handle it
+            DesiredDeliveryMediums=['EMAIL']
+        )
+        
+        user_sub = None
+        for attr in response['User']['Attributes']:
+            if attr['Name'] == 'sub':
+                user_sub = attr['Value']
+                break
+        
+        return {
+            'user_id': user_sub,
+            'temporary_password': temp_password,
+            'email': email
+        }
+        
+    except Exception as e:
+        print(f"Error creating user via admin: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
