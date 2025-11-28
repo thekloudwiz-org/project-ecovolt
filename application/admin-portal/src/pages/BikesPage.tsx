@@ -442,7 +442,7 @@ export default function BikesPage() {
                     return (
                       <>
                         {usersWithoutBikes.length > 0 && (
-                          <optgroup label="📗 Users Without Bikes">
+                          <optgroup label="Users Without Bikes">
                             {usersWithoutBikes.map(user => (
                               <option key={user.user_id} value={user.user_id}>
                                 {user.name || 'No name'} | {user.email}
@@ -452,7 +452,7 @@ export default function BikesPage() {
                         )}
 
                         {usersWithBikes.length > 0 && (
-                          <optgroup label="📘 Users With Assigned Bikes">
+                          <optgroup label="Users With Assigned Bikes">
                             {usersWithBikes.map(user => {
                               const bikeCount = userBikeCounts.get(user.user_id) || 0
                               return (
