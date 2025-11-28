@@ -4,6 +4,7 @@ import { getStations, createStation, updateStation, deleteStation } from '../ser
 import type { Station } from '../types'
 import MapPicker from '../components/MapPicker'
 import MessageModal from '../components/MessageModal'
+import ToggleSwitch from '../components/ToggleSwitch'
 import './StationsPage.css'
 
 export default function StationsPage() {
@@ -222,31 +223,11 @@ export default function StationsPage() {
                       <td>{station.address}</td>
                       <td>{formatOperatingHours(station.operating_hours)}</td>
                       <td>
-                        <button
-                          onClick={() => handleToggleStatus(station.station_id, station.status)}
+                        <ToggleSwitch
+                          checked={station.status === 'active'}
+                          onChange={() => handleToggleStatus(station.station_id, station.status)}
                           disabled={toggleStatusMutation.isPending}
-                          style={{
-                            padding: '6px 16px',
-                            border: 'none',
-                            borderRadius: '20px',
-                            cursor: toggleStatusMutation.isPending ? 'not-allowed' : 'pointer',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            transition: 'all 0.2s',
-                            backgroundColor: station.status === 'active' ? '#4caf50' : '#9e9e9e',
-                            color: 'white'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!toggleStatusMutation.isPending) {
-                              e.currentTarget.style.opacity = '0.8'
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.opacity = '1'
-                          }}
-                        >
-                          {station.status === 'active' ? '✓ Active' : '○ Inactive'}
-                        </button>
+                        />
                       </td>
                       <td>
                         <button className="btn-icon" onClick={() => handleModalOpen(station)}>

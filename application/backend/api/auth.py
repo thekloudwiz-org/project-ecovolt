@@ -6,6 +6,7 @@ Handles user registration, login, confirmation, and token refresh
 import json
 import os
 from typing import Dict, Any
+from datetime import datetime
 from utils.auth import create_cognito_user, confirm_user, initiate_auth, refresh_token as refresh_auth_token
 from utils.db import get_db_connection, Queries
 from utils.validators import validate_email, validate_password, validate_phone_number
@@ -373,8 +374,7 @@ def admin_create_user_endpoint(event: Dict[str, Any], context: Any) -> Dict[str,
         if subscription not in ['basic', 'premium']:
             subscription = 'basic'
         
-        # Create user in Cognito only
-        # Database record will be created automatically on first login (via user_sync.py)
+        # Create user in Cognito
         result = admin_create_user(email, name, phone, subscription)
         if not result:
             return {
@@ -404,19 +404,45 @@ def admin_create_user_endpoint(event: Dict[str, Any], context: Any) -> Dict[str,
                     })
                 }
 
+        # Create database record immediately so user appears in admin list
+        from utils.db import get_db_connection
+        from queries import Queries
+        
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    Queries.CREATE_USER,
+                    (
+                        result['user_id'],
+                        email,
+                        name,
+                        phone,
+                        subscription,
+                        0.00  # initial wallet balance
+                    )
+                )
+                conn.commit()
+        except Exception as db_error:
+            print(f"Warning: Failed to create database record: {str(db_error)}")
+            # Don't fail the request - user can still login and record will be created then
+            pass
+
         return {
             'statusCode': 201,
             'body': json.dumps({
-                'message': 'User created successfully. Database record will be created on first login.',
+                'message': 'User created successfully',
                 'user': {
                     'user_id': result['user_id'],
                     'email': result['email'],
                     'name': name,
                     'phone': phone,
-                    'subscription': subscription
+                    'subscription': subscription,
+                    'wallet_balance': 0.00,
+                    'created_at': datetime.now().isoformat()
                 },
                 'temporary_password': result['temporary_password'],
-                'note': 'User must change password on first login. Subscription can be updated by admin after first login.'
+                'note': 'User must change password on first login.'
             })
         }
         
