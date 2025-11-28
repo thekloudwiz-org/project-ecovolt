@@ -230,6 +230,8 @@ jobs:
           path: |
             ${{ inputs.working_directory }}/${{ inputs.environment }}.tfplan
             ${{ inputs.working_directory }}/plan-output.txt
+            ${{ inputs.working_directory }}/modules/compute/lambda/*.zip
+            ${{ inputs.working_directory }}/modules/analytics/lambda/*.zip
           retention-days: 5
 
       - name: Comment Plan on PR
