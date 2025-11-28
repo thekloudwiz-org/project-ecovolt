@@ -287,8 +287,12 @@ jobs:
         run: |
           cd ${{ inputs.working_directory }}
           terraform init \
-            -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state" \
-            -reconfigure
+            -backend-config="key=project-ecovolt/${{ inputs.environment }}-tf.state"
+
+      - name: Refresh State
+        run: |
+          cd ${{ inputs.working_directory }}
+          terraform refresh -var-file=environments/${{ inputs.environment }}.tfvars
 
       - name: Verify Plan is Still Valid
         id: verify
