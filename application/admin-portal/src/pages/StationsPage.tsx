@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getStations, createStation, updateStation, deleteStation } from '../services/api'
 import type { Station } from '../types'
 import MapPicker from '../components/MapPicker'
+import MessageModal from '../components/MessageModal'
 import './StationsPage.css'
 
 export default function StationsPage() {
@@ -13,6 +14,7 @@ export default function StationsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedLat, setSelectedLat] = useState<number | undefined>()
   const [selectedLng, setSelectedLng] = useState<number | undefined>()
+  const [messageModal, setMessageModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['stations', page],
@@ -24,10 +26,17 @@ export default function StationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stations'] })
       handleModalClose()
-      alert('Station created successfully!')
+      setMessageModal({
+        type: 'success',
+        message: 'Station created successfully!'
+      })
     },
     onError: (error: Error) => {
-      alert(`Failed to create station: ${error.message}`)
+      handleModalClose()
+      setMessageModal({
+        type: 'error',
+        message: `Failed to create station: ${error.message}`
+      })
     },
   })
 
@@ -36,10 +45,17 @@ export default function StationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stations'] })
       handleModalClose()
-      alert('Station updated successfully!')
+      setMessageModal({
+        type: 'success',
+        message: 'Station updated successfully!'
+      })
     },
     onError: (error: Error) => {
-      alert(`Failed to update station: ${error.message}`)
+      handleModalClose()
+      setMessageModal({
+        type: 'error',
+        message: `Failed to update station: ${error.message}`
+      })
     },
   })
 
@@ -322,6 +338,15 @@ export default function StationsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Message Modal */}
+      {messageModal && (
+        <MessageModal
+          type={messageModal.type}
+          message={messageModal.message}
+          onClose={() => setMessageModal(null)}
+        />
       )}
     </div>
   )
