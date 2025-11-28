@@ -448,13 +448,16 @@ export default function UsersPage() {
               </div>
               <div style={{ 
                 padding: '12px', 
-                backgroundColor: '#e3f2fd', 
+                backgroundColor: '#fff3cd', 
                 borderRadius: '6px', 
                 marginBottom: '16px',
                 fontSize: '14px',
-                color: '#1976d2'
+                color: '#856404',
+                border: '1px solid #ffeaa7'
               }}>
-                ℹ️ A temporary password will be generated and shown after creation. The user must change it on first login.
+                ℹ️ <strong>Note:</strong> A temporary password will be generated and shown after creation. The user must change it on first login.
+                <br /><br />
+                The user will appear in this list after they complete their first login.
               </div>
               <div className="modal-actions">
                 <button
