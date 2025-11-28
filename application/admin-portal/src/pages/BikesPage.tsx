@@ -22,10 +22,10 @@ export default function BikesPage() {
     queryFn: () => getBikes(page, 20),
   })
 
-  // Fetch users for assignment dropdown
+  // Fetch users for assignment dropdown (max 100 per API limit)
   const { data: usersData } = useQuery({
     queryKey: ['users'],
-    queryFn: () => getUsers(1, 1000), // Fetch all users
+    queryFn: () => getUsers(1, 100),
   })
 
   // Create bike mutation
