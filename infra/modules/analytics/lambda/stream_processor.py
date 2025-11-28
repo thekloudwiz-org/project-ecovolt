@@ -14,9 +14,8 @@ from decimal import Decimal
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-# Suppress SSL warnings for AWS Timestream for InfluxDB (uses self-signed certs)
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Note: AWS Timestream for InfluxDB uses proper TLS 1.2/1.3 certificates
+# SSL verification should be enabled for security
 
 # Initialize AWS clients
 dynamodb = boto3.resource('dynamodb')
@@ -59,12 +58,14 @@ def get_influxdb_client():
         print(f"Bucket: {INFLUXDB_BUCKET}")
         print(f"Username: {creds['username']}")
 
+        # AWS Timestream for InfluxDB uses proper TLS certificates
+        # SSL verification is enabled for security
         _influxdb_client = InfluxDBClient(
             url=f"https://{INFLUXDB_ENDPOINT}:8086",
             username=creds['username'],
             password=creds['password'],
             org=INFLUXDB_ORG,
-            verify_ssl=False,  # AWS Timestream for InfluxDB uses self-signed certs
+            verify_ssl=True,  # Enable SSL verification for security
             timeout=10000  # 10 second timeout
         )
         _influxdb_write_api = _influxdb_client.write_api(write_options=SYNCHRONOUS)
