@@ -42,6 +42,16 @@ resource "random_password" "influxdb_password" {
   upper   = true
   lower   = true
   numeric = true
+
+  lifecycle {
+    ignore_changes = [
+      length,
+      special,
+      upper,
+      lower,
+      numeric
+    ]
+  }
 }
 
 # Store InfluxDB credentials in Secrets Manager
