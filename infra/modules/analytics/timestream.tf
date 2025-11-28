@@ -1,5 +1,6 @@
 # Timestream for InfluxDB - Historical Time-Series Data Storage
 # Stores voltage, current, temperature, power output, energy generation
+# Updated: 2025-11-28
 
 resource "aws_timestreaminfluxdb_db_instance" "telemetry" {
   name                   = "${var.project_name}-${var.environment}-telemetry-influxdb"
