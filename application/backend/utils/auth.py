@@ -449,8 +449,7 @@ def admin_create_user(email: str, name: str, phone: str, subscription: str = 'ba
                 {'Name': 'email', 'Value': email},
                 {'Name': 'email_verified', 'Value': 'true'},  # Auto-verify
                 {'Name': 'name', 'Value': name},
-                {'Name': 'phone_number', 'Value': phone},
-                {'Name': 'custom:subscription', 'Value': subscription}
+                {'Name': 'phone_number', 'Value': phone}
             ],
             TemporaryPassword=temp_password,
             MessageAction='SUPPRESS',  # Don't send Cognito email, we'll handle it
