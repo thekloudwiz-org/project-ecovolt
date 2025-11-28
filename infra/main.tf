@@ -101,10 +101,15 @@ module "analytics" {
   environment  = var.environment
   kms_key_arn  = module.security.kms_key_arn
 
-  # DynamoDB table names for telemetry storage
-  bike_telemetry_table_name = module.dynamodb.bike_telemetry_table_name
-  station_energy_table_name = module.dynamodb.station_energy_table_name
-  swap_events_table_name    = module.dynamodb.swap_events_table_name
+  # DynamoDB table names for CURRENT STATE storage (UpdateItem pattern)
+  bike_status_table_name = module.dynamodb.bike_status_table_name
+  stations_table_name    = module.dynamodb.stations_table_name
+  swap_events_table_name = module.dynamodb.swap_events_table_name
+  
+  # VPC configuration for InfluxDB
+  vpc_id                    = module.networking.vpc_id
+  private_subnet_ids        = module.networking.private_subnet_ids
+  lambda_security_group_id  = module.compute.lambda_security_group_id
 
   tags = local.common_tags
 

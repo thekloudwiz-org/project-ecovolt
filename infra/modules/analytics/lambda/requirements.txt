@@ -1,0 +1,5 @@
+# InfluxDB client for writing time-series data
+influxdb-client==1.38.0
+
+# AWS SDK (included in Lambda runtime, but specified for local development)
+boto3>=1.28.0

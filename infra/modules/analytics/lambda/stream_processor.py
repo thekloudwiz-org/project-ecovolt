@@ -1,6 +1,8 @@
 """
-Lambda function for processing Kinesis stream data and writing to DynamoDB.
-This function consumes telemetry data from Kinesis and writes it to appropriate DynamoDB tables.
+Lambda function for processing Kinesis stream data with Fan-Out pattern.
+This function implements cost-optimized data routing:
+- Current State → DynamoDB (UpdateItem - overwrite)
+- Historical Time-Series → InfluxDB (WriteRecords - append)
 """
 
 import json
@@ -9,24 +11,58 @@ import base64
 import boto3
 from datetime import datetime
 from decimal import Decimal
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
 
-# Initialize DynamoDB client
+# Initialize AWS clients
 dynamodb = boto3.resource('dynamodb')
+secretsmanager = boto3.client('secretsmanager')
 
-# Environment variables
-BIKE_TELEMETRY_TABLE = os.environ.get('BIKE_TELEMETRY_TABLE', 'ecovolt-dev-bike-telemetry')
-STATION_ENERGY_TABLE = os.environ.get('STATION_ENERGY_TABLE', 'ecovolt-dev-station-energy')
+# Environment variables - DynamoDB Current State Tables
+BIKE_STATUS_TABLE = os.environ.get('BIKE_STATUS_TABLE', 'ecovolt-dev-bike-status')
+STATION_STATUS_TABLE = os.environ.get('STATION_STATUS_TABLE', 'ecovolt-dev-stations')
 SWAP_EVENTS_TABLE = os.environ.get('SWAP_EVENTS_TABLE', 'ecovolt-dev-swap-events')
 
+# Environment variables - InfluxDB Historical Storage
+INFLUXDB_SECRET_ARN = os.environ.get('INFLUXDB_SECRET_ARN')
+INFLUXDB_ENDPOINT = os.environ.get('INFLUXDB_ENDPOINT')
+INFLUXDB_ORG = os.environ.get('INFLUXDB_ORG', 'ecovolt')
+INFLUXDB_BUCKET = os.environ.get('INFLUXDB_BUCKET', 'dev-telemetry')
+
 # Get DynamoDB tables
-bike_telemetry_table = dynamodb.Table(BIKE_TELEMETRY_TABLE)
-station_energy_table = dynamodb.Table(STATION_ENERGY_TABLE)
+bike_status_table = dynamodb.Table(BIKE_STATUS_TABLE)
+station_status_table = dynamodb.Table(STATION_STATUS_TABLE)
 swap_events_table = dynamodb.Table(SWAP_EVENTS_TABLE)
+
+# InfluxDB client (lazy initialization)
+_influxdb_client = None
+_influxdb_write_api = None
+
+
+def get_influxdb_client():
+    """Lazy initialization of InfluxDB client."""
+    global _influxdb_client, _influxdb_write_api
+    
+    if _influxdb_client is None:
+        # Get credentials from Secrets Manager
+        secret = secretsmanager.get_secret_value(SecretId=INFLUXDB_SECRET_ARN)
+        creds = json.loads(secret['SecretString'])
+        
+        # Initialize InfluxDB client
+        _influxdb_client = InfluxDBClient(
+            url=f"https://{INFLUXDB_ENDPOINT}:8086",
+            token=creds['password'],  # InfluxDB uses password as token
+            org=INFLUXDB_ORG
+        )
+        _influxdb_write_api = _influxdb_client.write_api(write_options=SYNCHRONOUS)
+    
+    return _influxdb_client, _influxdb_write_api
 
 
 def handler(event, context):
     """
-    Process Kinesis records and write to Timestream.
+    Process Kinesis records with Fan-Out pattern.
+    Routes current state to DynamoDB and historical metrics to InfluxDB.
     
     Args:
         event: Kinesis event containing records
@@ -44,11 +80,11 @@ def handler(event, context):
             payload = base64.b64decode(record['kinesis']['data']).decode('utf-8')
             data = json.loads(payload)
             
-            # Determine message type and route to appropriate table
+            # Determine message type and route with Fan-Out pattern
             if 'bikeId' in data:
-                write_bike_telemetry(data)
+                process_bike_telemetry(data)
             elif 'stationId' in data and 'solar' in data:
-                write_station_energy(data)
+                process_station_energy(data)
             elif 'swapId' in data:
                 write_swap_event(data)
             else:
@@ -61,6 +97,8 @@ def handler(event, context):
         except Exception as e:
             print(f"Error processing record: {str(e)}")
             print(f"Record data: {record}")
+            import traceback
+            traceback.print_exc()
             records_failed += 1
     
     return {
@@ -83,59 +121,169 @@ def convert_floats_to_decimal(obj):
     return obj
 
 
-def write_bike_telemetry(data):
-    """Write bike telemetry to DynamoDB."""
-    # Get timestamp (milliseconds)
-    if 'timestamp' in data:
-        timestamp = int(datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).timestamp() * 1000)
-    else:
-        timestamp = int(datetime.now().timestamp() * 1000)
-
-    # Calculate TTL (90 days from now)
-    ttl = int((datetime.now().timestamp() + (90 * 24 * 60 * 60)))
-
-    # Prepare item for DynamoDB
-    item = {
-        'bikeId': data['bikeId'],
-        'timestamp': timestamp,
-        'ttl': ttl,
-        'battery': convert_floats_to_decimal(data.get('battery', {})),
-        'location': convert_floats_to_decimal(data.get('location', {})),
+def process_bike_telemetry(data):
+    """
+    Fan-Out Pattern: Split bike telemetry into current state and historical metrics.
+    
+    Target A (DynamoDB): Current state only - UpdateItem (overwrite)
+    Target B (InfluxDB): Historical time-series - WriteRecords (append)
+    """
+    bike_id = data['bikeId']
+    timestamp = datetime.now()
+    
+    # ============================================================================
+    # TARGET A: DynamoDB - Current State Only (UpdateItem - NO history)
+    # ============================================================================
+    battery = data.get('battery', {})
+    location = data.get('location', {})
+    
+    current_state = {
+        'bikeId': bike_id,
+        'status': data.get('status', 'active'),  # charging, idle, riding
+        'currentSOC': convert_floats_to_decimal(battery.get('level', 0)),
+        'gpsLat': convert_floats_to_decimal(location.get('lat', 0)),
+        'gpsLon': convert_floats_to_decimal(location.get('lon', 0)),
+        'lastSeen': int(timestamp.timestamp()),
         'speed': convert_floats_to_decimal(data.get('speed', 0)),
         'odometer': data.get('odometer', 0),
-        'recordedAt': data.get('timestamp', datetime.now().isoformat())
+        'userId': data.get('userId', None)
     }
+    
+    # Use UpdateItem to OVERWRITE current state (not create new rows)
+    bike_status_table.put_item(Item=current_state)
+    print(f"✅ Updated current state for bike {bike_id}")
+    
+    # ============================================================================
+    # TARGET B: InfluxDB - Historical Time-Series Metrics (append-only)
+    # ============================================================================
+    try:
+        _, write_api = get_influxdb_client()
+        
+        # Write voltage time-series
+        if 'voltage' in battery:
+            point = Point("bike_voltage") \
+                .tag("bikeId", bike_id) \
+                .field("value", float(battery['voltage'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        # Write current time-series
+        if 'current' in battery:
+            point = Point("bike_current") \
+                .tag("bikeId", bike_id) \
+                .field("value", float(battery['current'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        # Write temperature time-series
+        if 'temperature' in battery:
+            point = Point("bike_temperature") \
+                .tag("bikeId", bike_id) \
+                .field("value", float(battery['temperature'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        # Write power output time-series
+        if 'power' in data:
+            point = Point("bike_power") \
+                .tag("bikeId", bike_id) \
+                .field("value", float(data['power'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        print(f"✅ Wrote historical metrics to InfluxDB for bike {bike_id}")
+        
+    except Exception as e:
+        print(f"⚠️  Failed to write to InfluxDB: {str(e)}")
+        # Don't fail the entire record if InfluxDB write fails
 
-    # Write to DynamoDB
-    bike_telemetry_table.put_item(Item=item)
-    print(f"Wrote bike telemetry for {data['bikeId']} at {timestamp}")
 
-
-def write_station_energy(data):
-    """Write station energy data to DynamoDB."""
-    # Get timestamp (milliseconds)
-    if 'timestamp' in data:
-        timestamp = int(datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00')).timestamp() * 1000)
-    else:
-        timestamp = int(datetime.now().timestamp() * 1000)
-
-    # Calculate TTL (90 days from now)
-    ttl = int((datetime.now().timestamp() + (90 * 24 * 60 * 60)))
-
-    # Prepare item for DynamoDB
-    item = {
-        'stationId': data['stationId'],
-        'timestamp': timestamp,
-        'ttl': ttl,
-        'solar': convert_floats_to_decimal(data.get('solar', {})),
-        'grid': convert_floats_to_decimal(data.get('grid', {})),
-        'inventory': convert_floats_to_decimal(data.get('inventory', {})),
-        'recordedAt': data.get('timestamp', datetime.now().isoformat())
+def process_station_energy(data):
+    """
+    Fan-Out Pattern: Split station energy into current state and historical metrics.
+    
+    Target A (DynamoDB): Current state only - UpdateItem (overwrite)
+    Target B (InfluxDB): Historical time-series - WriteRecords (append)
+    """
+    station_id = data['stationId']
+    timestamp = datetime.now()
+    
+    # ============================================================================
+    # TARGET A: DynamoDB - Current State Only (UpdateItem - NO history)
+    # ============================================================================
+    solar = data.get('solar', {})
+    grid = data.get('grid', {})
+    inventory = data.get('inventory', {})
+    
+    current_state = {
+        'stationId': station_id,
+        'status': data.get('status', 'active'),
+        'availableBatteries': inventory.get('available', 0),
+        'chargingBatteries': inventory.get('charging', 0),
+        'currentSolarPower': convert_floats_to_decimal(solar.get('power', 0)),
+        'currentGridPower': convert_floats_to_decimal(grid.get('power', 0)),
+        'lastSeen': int(timestamp.timestamp())
     }
-
-    # Write to DynamoDB
-    station_energy_table.put_item(Item=item)
-    print(f"Wrote station energy for {data['stationId']} at {timestamp}")
+    
+    # Use UpdateItem to OVERWRITE current state
+    station_status_table.update_item(
+        Key={'stationId': station_id},
+        UpdateExpression='SET #status = :status, availableBatteries = :avail, chargingBatteries = :charging, currentSolarPower = :solar, currentGridPower = :grid, lastSeen = :seen',
+        ExpressionAttributeNames={'#status': 'status'},
+        ExpressionAttributeValues={
+            ':status': current_state['status'],
+            ':avail': current_state['availableBatteries'],
+            ':charging': current_state['chargingBatteries'],
+            ':solar': current_state['currentSolarPower'],
+            ':grid': current_state['currentGridPower'],
+            ':seen': current_state['lastSeen']
+        }
+    )
+    print(f"✅ Updated current state for station {station_id}")
+    
+    # ============================================================================
+    # TARGET B: InfluxDB - Historical Time-Series Metrics (append-only)
+    # ============================================================================
+    try:
+        _, write_api = get_influxdb_client()
+        
+        # Write solar generation time-series
+        if 'generation' in solar:
+            point = Point("station_solar_generation") \
+                .tag("stationId", station_id) \
+                .field("value", float(solar['generation'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        # Write solar power time-series
+        if 'power' in solar:
+            point = Point("station_solar_power") \
+                .tag("stationId", station_id) \
+                .field("value", float(solar['power'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        # Write grid consumption time-series
+        if 'consumption' in grid:
+            point = Point("station_grid_consumption") \
+                .tag("stationId", station_id) \
+                .field("value", float(grid['consumption'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        # Write energy cost time-series
+        if 'cost' in grid:
+            point = Point("station_energy_cost") \
+                .tag("stationId", station_id) \
+                .field("value", float(grid['cost'])) \
+                .time(timestamp)
+            write_api.write(bucket=INFLUXDB_BUCKET, record=point)
+        
+        print(f"✅ Wrote historical metrics to InfluxDB for station {station_id}")
+        
+    except Exception as e:
+        print(f"⚠️  Failed to write to InfluxDB: {str(e)}")
+        # Don't fail the entire record if InfluxDB write fails
 
 
 def write_swap_event(data):

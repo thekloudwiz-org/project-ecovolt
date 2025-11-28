@@ -201,9 +201,18 @@ resource "aws_iam_role_policy" "lambda_processor" {
           "dynamodb:BatchWriteItem"
         ]
         Resource = [
-          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.bike_telemetry_table_name != "" ? var.bike_telemetry_table_name : "${var.project_name}-${var.environment}-bike-telemetry"}",
-          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.station_energy_table_name != "" ? var.station_energy_table_name : "${var.project_name}-${var.environment}-station-energy"}",
+          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.bike_status_table_name != "" ? var.bike_status_table_name : "${var.project_name}-${var.environment}-bike-status"}",
+          "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.stations_table_name != "" ? var.stations_table_name : "${var.project_name}-${var.environment}-stations"}",
           "arn:aws:dynamodb:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:table/${var.swap_events_table_name != "" ? var.swap_events_table_name : "${var.project_name}-${var.environment}-swap-events"}"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          aws_secretsmanager_secret.influxdb_credentials.arn
         ]
       },
       {
@@ -239,11 +248,18 @@ resource "aws_lambda_function" "stream_processor" {
 
   environment {
     variables = {
-      # DynamoDB tables for telemetry storage (replaces Timestream)
-      BIKE_TELEMETRY_TABLE = var.bike_telemetry_table_name != "" ? var.bike_telemetry_table_name : "${var.project_name}-${var.environment}-bike-telemetry"
-      STATION_ENERGY_TABLE = var.station_energy_table_name != "" ? var.station_energy_table_name : "${var.project_name}-${var.environment}-station-energy"
+      # DynamoDB tables for CURRENT STATE only (UpdateItem pattern)
+      BIKE_STATUS_TABLE    = var.bike_status_table_name != "" ? var.bike_status_table_name : "${var.project_name}-${var.environment}-bike-status"
+      STATION_STATUS_TABLE = var.stations_table_name != "" ? var.stations_table_name : "${var.project_name}-${var.environment}-stations"
       SWAP_EVENTS_TABLE    = var.swap_events_table_name != "" ? var.swap_events_table_name : "${var.project_name}-${var.environment}-swap-events"
-      # Legacy environment variables (kept for compatibility)
+      
+      # InfluxDB for HISTORICAL TIME-SERIES (WriteRecords pattern)
+      INFLUXDB_SECRET_ARN = aws_secretsmanager_secret.influxdb_credentials.arn
+      INFLUXDB_ENDPOINT   = aws_timestreaminfluxdb_db_instance.telemetry.endpoint
+      INFLUXDB_ORG        = var.project_name
+      INFLUXDB_BUCKET     = "${var.environment}-telemetry"
+      
+      # Legacy environment variables
       DATA_LAKE_BUCKET = aws_s3_bucket.data_lake.id
       KINESIS_STREAM   = aws_kinesis_stream.telemetry.name
     }
