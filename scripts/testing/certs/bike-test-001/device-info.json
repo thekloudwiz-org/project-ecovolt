@@ -1,0 +1,12 @@
+{
+  "deviceName": "bike-test-001",
+  "deviceType": "bike",
+  "deviceId": "test-001",
+  "thingArn": "arn:aws:iot:eu-central-1:288761729262:thing/bike-test-001",
+  "certificateArn": "arn:aws:iot:eu-central-1:288761729262:cert/20d44a2258760b76e2336385d9d03b8b3cf2a16afd11f7283ac93dfd0ab65326",
+  "certificateId": "20d44a2258760b76e2336385d9d03b8b3cf2a16afd11f7283ac93dfd0ab65326",
+  "iotEndpoint": "adqmt33chelgp-ats.iot.eu-central-1.amazonaws.com",
+  "region": "eu-central-1",
+  "mqttTopic": "ecovolt/bikes/bike-test-001/telemetry",
+  "createdAt": "2025-11-28T17:11:03Z"
+}

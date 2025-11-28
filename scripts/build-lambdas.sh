@@ -86,17 +86,9 @@ build_lambda \
     "data_transformer" \
     "false"
 
-# Build Compute Lambda Functions
-echo -e "\n${BLUE}=== Compute Module ===${NC}"
-
 build_lambda \
-    "${INFRA_DIR}/modules/compute/lambda" \
-    "api_handler" \
-    "false"
-
-build_lambda \
-    "${INFRA_DIR}/modules/compute/lambda" \
-    "stream_processor_compute" \
+    "${INFRA_DIR}/modules/analytics/lambda" \
+    "firehose_transformer" \
     "false"
 
 # Build Database Lambda Functions
