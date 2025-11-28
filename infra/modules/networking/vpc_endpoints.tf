@@ -1,13 +1,55 @@
-# VPC Endpoints for AWS Services
-# Allows Lambda in private subnets to access AWS services without NAT Gateway
+# VPC Endpoints for Private AWS Service Access
+# Allows Lambda functions in private subnets to access AWS services without NAT Gateway
 
 # Data source for current region
 data "aws_region" "current" {}
 
-# Security group for VPC endpoints
+# ============================================================================
+# Gateway Endpoints (FREE - No hourly charges)
+# ============================================================================
+
+# DynamoDB Gateway Endpoint
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = concat(aws_route_table.private[*].id, [aws_route_table.public.id])
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-dynamodb-endpoint"
+      Type = "Gateway"
+      Cost = "Free"
+    }
+  )
+}
+
+# S3 Gateway Endpoint
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = concat(aws_route_table.private[*].id, [aws_route_table.public.id])
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-s3-endpoint"
+      Type = "Gateway"
+      Cost = "Free"
+    }
+  )
+}
+
+# ============================================================================
+# Interface Endpoints (Charged - ~$7/month per endpoint)
+# ============================================================================
+
+# Security Group for VPC Endpoints
 resource "aws_security_group" "vpc_endpoints" {
-  name        = "${local.name_prefix}-vpc-endpoints"
-  description = "Security group for VPC endpoints"
+  name        = "${local.name_prefix}-vpc-endpoints-sg"
+  description = "Security group for VPC interface endpoints"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -34,7 +76,7 @@ resource "aws_security_group" "vpc_endpoints" {
   )
 }
 
-# Secrets Manager VPC Endpoint (Interface)
+# Secrets Manager Interface Endpoint
 resource "aws_vpc_endpoint" "secretsmanager" {
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${data.aws_region.current.name}.secretsmanager"
@@ -47,55 +89,48 @@ resource "aws_vpc_endpoint" "secretsmanager" {
     local.common_tags,
     {
       Name = "${local.name_prefix}-secretsmanager-endpoint"
+      Type = "Interface"
+      Cost = "~$7/month"
     }
   )
 }
 
-# S3 VPC Endpoint (Gateway - no cost)
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
-  vpc_endpoint_type = "Gateway"
-  route_table_ids   = aws_route_table.private[*].id
+# CloudWatch Logs Interface Endpoint (for Lambda logging)
+resource "aws_vpc_endpoint" "logs" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.logs"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-s3-endpoint"
+      Name = "${local.name_prefix}-logs-endpoint"
+      Type = "Interface"
+      Cost = "~$7/month"
     }
   )
 }
 
-# DynamoDB VPC Endpoint (Gateway - no cost)
-resource "aws_vpc_endpoint" "dynamodb" {
-  vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
-  vpc_endpoint_type = "Gateway"
-  route_table_ids   = aws_route_table.private[*].id
+# SSM Parameter Store Interface Endpoint (optional but useful)
+resource "aws_vpc_endpoint" "ssm" {
+  count = var.enable_ssm_endpoint ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.ssm"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-dynamodb-endpoint"
+      Name = "${local.name_prefix}-ssm-endpoint"
+      Type = "Interface"
+      Cost = "~$7/month"
     }
   )
 }
-
-# Cognito Identity Provider VPC Endpoint (Interface)
-# DISABLED: Cognito User Pools with ManagedLogin don't support PrivateLink
-# Lambda will use NAT Gateway to access Cognito over public internet
-# resource "aws_vpc_endpoint" "cognito_idp" {
-#   vpc_id              = aws_vpc.main.id
-#   service_name        = "com.amazonaws.${data.aws_region.current.name}.cognito-idp"
-#   vpc_endpoint_type   = "Interface"
-#   subnet_ids          = aws_subnet.private[*].id
-#   security_group_ids  = [aws_security_group.vpc_endpoints.id]
-#   private_dns_enabled = true
-#
-#   tags = merge(
-#     local.common_tags,
-#     {
-#       Name = "${local.name_prefix}-cognito-idp-endpoint"
-#     }
-#   )
-# }

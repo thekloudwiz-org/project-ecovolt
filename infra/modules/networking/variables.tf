@@ -78,3 +78,10 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+
+variable "enable_ssm_endpoint" {
+  description = "Enable SSM Parameter Store VPC endpoint (adds ~$7/month cost)"
+  type        = bool
+  default     = false
+}

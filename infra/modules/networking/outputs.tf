@@ -137,3 +137,30 @@ output "dynamodb_endpoint_id" {
 #   description = "Cognito Identity Provider VPC endpoint ID"
 #   value       = aws_vpc_endpoint.cognito_idp.id
 # }
+
+
+# VPC Endpoints
+output "vpc_endpoint_dynamodb_id" {
+  description = "ID of the DynamoDB VPC endpoint"
+  value       = aws_vpc_endpoint.dynamodb.id
+}
+
+output "vpc_endpoint_s3_id" {
+  description = "ID of the S3 VPC endpoint"
+  value       = aws_vpc_endpoint.s3.id
+}
+
+output "vpc_endpoint_secretsmanager_id" {
+  description = "ID of the Secrets Manager VPC endpoint"
+  value       = aws_vpc_endpoint.secretsmanager.id
+}
+
+output "vpc_endpoint_logs_id" {
+  description = "ID of the CloudWatch Logs VPC endpoint"
+  value       = aws_vpc_endpoint.logs.id
+}
+
+output "vpc_endpoints_security_group_id" {
+  description = "Security group ID for VPC endpoints"
+  value       = aws_security_group.vpc_endpoints.id
+}

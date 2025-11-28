@@ -35,9 +35,13 @@ resource "aws_timestreaminfluxdb_db_instance" "telemetry" {
 }
 
 # Random password for InfluxDB admin user
+# Note: InfluxDB password must match ^[a-zA-Z0-9]+$ (alphanumeric only)
 resource "random_password" "influxdb_password" {
   length  = 32
-  special = true
+  special = false # No special characters allowed
+  upper   = true
+  lower   = true
+  numeric = true
 }
 
 # Store InfluxDB credentials in Secrets Manager
@@ -64,6 +68,29 @@ resource "aws_secretsmanager_secret_version" "influxdb_credentials" {
   })
 }
 
+# Security Group for Stream Processor Lambda
+resource "aws_security_group" "stream_processor" {
+  name        = "${var.project_name}-${var.environment}-stream-processor-sg"
+  description = "Security group for stream processor Lambda function"
+  vpc_id      = var.vpc_id
+
+  # Allow all outbound (for InfluxDB, VPC endpoints)
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project_name}-${var.environment}-stream-processor-sg"
+    }
+  )
+}
+
 # Security Group for InfluxDB
 resource "aws_security_group" "influxdb" {
   name        = "${var.project_name}-${var.environment}-influxdb-sg"
@@ -72,11 +99,11 @@ resource "aws_security_group" "influxdb" {
 
   # Allow inbound from private subnets (where Lambda runs)
   ingress {
-    description = "InfluxDB from VPC"
+    description = "InfluxDB from private subnets"
     from_port   = 8086
     to_port     = 8086
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"] # VPC CIDR - adjust if needed
+    cidr_blocks = var.private_subnet_cidrs
   }
 
   # Allow outbound

@@ -107,8 +107,9 @@ module "analytics" {
   swap_events_table_name = module.dynamodb.swap_events_table_name
 
   # VPC configuration for InfluxDB
-  vpc_id             = module.networking.vpc_id
-  private_subnet_ids = module.networking.private_subnet_ids
+  vpc_id               = module.networking.vpc_id
+  private_subnet_ids   = module.networking.private_subnet_ids
+  private_subnet_cidrs = module.networking.private_subnet_cidrs
 
   tags = local.common_tags
 

@@ -231,6 +231,17 @@ resource "aws_iam_role_policy" "lambda_processor" {
           "logs:PutLogEvents"
         ]
         Resource = "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${local.lambda_stream_processor_name}:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -245,6 +256,13 @@ resource "aws_lambda_function" "stream_processor" {
   runtime       = "python3.11"
   timeout       = 60
   memory_size   = 256
+
+  # VPC Configuration - Required to access InfluxDB inside VPC
+  # Uses VPC Endpoints for DynamoDB, Secrets Manager (no NAT Gateway needed)
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [aws_security_group.stream_processor.id]
+  }
 
   environment {
     variables = {
@@ -271,6 +289,7 @@ resource "aws_lambda_function" "stream_processor" {
       Name = local.lambda_stream_processor_name
     }
   )
+
 }
 
 # Lambda Event Source Mapping for Kinesis
