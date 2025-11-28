@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getUsers, getUser, adjustWalletBalance, createUser } from '../services/api'
+import type { User } from '../types'
 import MessageModal from '../components/MessageModal'
 import './UsersPage.css'
 
@@ -34,7 +35,7 @@ export default function UsersPage() {
   // Create user mutation
   const createMutation = useMutation({
     mutationFn: createUser,
-    onSuccess: (data) => {
+    onSuccess: (data: { user: User; temporary_password: string }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setShowCreateModal(false)
       setMessageModal({
@@ -122,7 +123,7 @@ export default function UsersPage() {
 
   // Filter users by search term
   const filteredUsers = data?.users?.filter(
-    (user) =>
+    (user: User) =>
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.user_id.toLowerCase().includes(searchTerm.toLowerCase())
@@ -174,7 +175,7 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers?.map((user) => (
+            {filteredUsers?.map((user: User) => (
               <tr key={user.user_id}>
                 <td className="user-id">{user.user_id}</td>
                 <td>{user.name}</td>
@@ -318,7 +319,7 @@ export default function UsersPage() {
                     <div className="details-section">
                       <h3>Bikes</h3>
                       <div className="bikes-list">
-                        {userDetails.bikes.map((bike) => (
+                        {userDetails.bikes.map((bike: { bike_id: string; model: string; status: string }) => (
                           <div key={bike.bike_id} className="bike-item">
                             <div className="bike-id">{bike.bike_id}</div>
                             <div className="bike-model">{bike.model}</div>

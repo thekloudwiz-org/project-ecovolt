@@ -52,6 +52,7 @@ export interface StationFormData {
   latitude: number
   longitude: number
   total_capacity: number
+  status?: 'active' | 'inactive' | 'maintenance'
   operating_hours?: {
     open: string
     close: string
