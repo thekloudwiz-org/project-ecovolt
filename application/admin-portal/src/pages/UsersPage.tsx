@@ -40,7 +40,7 @@ export default function UsersPage() {
       setShowCreateModal(false)
       setMessageModal({
         type: 'success',
-        message: `User created successfully!\n\nEmail: ${data.user.email}\n\nTemporary Password: ${data.temporary_password}\n\nUser must change password on first login.`
+        message: `User created successfully!\n\nEmail: ${data.user.email}\nTemporary Password: ${data.temporary_password}\n\nUser must change password on first login.\nThe user will appear in the list after their first login.`
       })
     },
     onError: (error: Error) => {
