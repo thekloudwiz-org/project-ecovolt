@@ -105,11 +105,10 @@ module "analytics" {
   bike_status_table_name = module.dynamodb.bike_status_table_name
   stations_table_name    = module.dynamodb.stations_table_name
   swap_events_table_name = module.dynamodb.swap_events_table_name
-  
+
   # VPC configuration for InfluxDB
-  vpc_id                    = module.networking.vpc_id
-  private_subnet_ids        = module.networking.private_subnet_ids
-  lambda_security_group_id  = module.compute.lambda_security_group_id
+  vpc_id             = module.networking.vpc_id
+  private_subnet_ids = module.networking.private_subnet_ids
 
   tags = local.common_tags
 

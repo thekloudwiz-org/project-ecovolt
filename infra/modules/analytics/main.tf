@@ -252,13 +252,13 @@ resource "aws_lambda_function" "stream_processor" {
       BIKE_STATUS_TABLE    = var.bike_status_table_name != "" ? var.bike_status_table_name : "${var.project_name}-${var.environment}-bike-status"
       STATION_STATUS_TABLE = var.stations_table_name != "" ? var.stations_table_name : "${var.project_name}-${var.environment}-stations"
       SWAP_EVENTS_TABLE    = var.swap_events_table_name != "" ? var.swap_events_table_name : "${var.project_name}-${var.environment}-swap-events"
-      
+
       # InfluxDB for HISTORICAL TIME-SERIES (WriteRecords pattern)
       INFLUXDB_SECRET_ARN = aws_secretsmanager_secret.influxdb_credentials.arn
       INFLUXDB_ENDPOINT   = aws_timestreaminfluxdb_db_instance.telemetry.endpoint
       INFLUXDB_ORG        = var.project_name
       INFLUXDB_BUCKET     = "${var.environment}-telemetry"
-      
+
       # Legacy environment variables
       DATA_LAKE_BUCKET = aws_s3_bucket.data_lake.id
       KINESIS_STREAM   = aws_kinesis_stream.telemetry.name

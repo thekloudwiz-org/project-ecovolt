@@ -9,20 +9,20 @@ resource "aws_timestreaminfluxdb_db_instance" "telemetry" {
   vpc_subnet_ids         = var.private_subnet_ids
   vpc_security_group_ids = [aws_security_group.influxdb.id]
   allocated_storage      = var.influxdb_storage_gb
-  
+
   # InfluxDB 2.x configuration
   db_storage_type = "InfluxIOIncludedT1"
-  
+
   # Organization and bucket (database equivalent)
   organization = var.project_name
   bucket       = "${var.environment}-telemetry"
-  
+
   # Publicly accessible (set to false for production)
   publicly_accessible = var.environment == "dev" ? true : false
-  
+
   # Deployment type
   deployment_type = var.influxdb_deployment_type
-  
+
   tags = merge(
     var.tags,
     {
@@ -44,7 +44,7 @@ resource "random_password" "influxdb_password" {
 resource "aws_secretsmanager_secret" "influxdb_credentials" {
   name        = "${var.project_name}-${var.environment}-influxdb-credentials"
   description = "InfluxDB admin credentials for ${var.environment}"
-  
+
   tags = merge(
     var.tags,
     {
@@ -69,16 +69,16 @@ resource "aws_security_group" "influxdb" {
   name        = "${var.project_name}-${var.environment}-influxdb-sg"
   description = "Security group for Timestream InfluxDB instance"
   vpc_id      = var.vpc_id
-  
-  # Allow inbound from Lambda (stream processor)
+
+  # Allow inbound from private subnets (where Lambda runs)
   ingress {
-    description     = "InfluxDB from Lambda"
-    from_port       = 8086
-    to_port         = 8086
-    protocol        = "tcp"
-    security_groups = [var.lambda_security_group_id]
+    description = "InfluxDB from VPC"
+    from_port   = 8086
+    to_port     = 8086
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"] # VPC CIDR - adjust if needed
   }
-  
+
   # Allow outbound
   egress {
     description = "Allow all outbound"
@@ -87,7 +87,7 @@ resource "aws_security_group" "influxdb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   tags = merge(
     var.tags,
     {
@@ -102,7 +102,7 @@ resource "aws_ssm_parameter" "influxdb_endpoint" {
   description = "InfluxDB endpoint URL"
   type        = "String"
   value       = aws_timestreaminfluxdb_db_instance.telemetry.endpoint
-  
+
   tags = var.tags
 }
 
@@ -111,7 +111,7 @@ resource "aws_ssm_parameter" "influxdb_secret_arn" {
   description = "ARN of InfluxDB credentials secret"
   type        = "String"
   value       = aws_secretsmanager_secret.influxdb_credentials.arn
-  
+
   tags = var.tags
 }
 
@@ -120,7 +120,7 @@ resource "aws_ssm_parameter" "influxdb_organization" {
   description = "InfluxDB organization name"
   type        = "String"
   value       = var.project_name
-  
+
   tags = var.tags
 }
 
@@ -129,6 +129,6 @@ resource "aws_ssm_parameter" "influxdb_bucket" {
   description = "InfluxDB bucket (database) name"
   type        = "String"
   value       = "${var.environment}-telemetry"
-  
+
   tags = var.tags
 }
