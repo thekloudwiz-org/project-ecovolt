@@ -22,7 +22,7 @@ export default function MessageModal({ type, message, onClose }: MessageModalPro
           <p style={{
             fontSize: '16px',
             color: '#666',
-            lineHeight: '1.8',
+            lineHeight: '1.5',
             marginBottom: '24px',
             whiteSpace: 'pre-line',
             textAlign: 'center'
