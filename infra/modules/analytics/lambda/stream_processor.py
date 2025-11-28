@@ -14,6 +14,10 @@ from decimal import Decimal
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+# Suppress SSL warnings for AWS Timestream for InfluxDB (uses self-signed certs)
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 # Initialize AWS clients
 dynamodb = boto3.resource('dynamodb')
 secretsmanager = boto3.client('secretsmanager')
@@ -42,20 +46,41 @@ _influxdb_write_api = None
 def get_influxdb_client():
     """Lazy initialization of InfluxDB client."""
     global _influxdb_client, _influxdb_write_api
-    
+
     if _influxdb_client is None:
         # Get credentials from Secrets Manager
         secret = secretsmanager.get_secret_value(SecretId=INFLUXDB_SECRET_ARN)
         creds = json.loads(secret['SecretString'])
-        
-        # Initialize InfluxDB client
+
+        # AWS Timestream for InfluxDB authentication
+        # Use username:password format for basic auth
+        print(f"Connecting to InfluxDB: {INFLUXDB_ENDPOINT}")
+        print(f"Organization: {INFLUXDB_ORG}")
+        print(f"Bucket: {INFLUXDB_BUCKET}")
+        print(f"Username: {creds['username']}")
+
         _influxdb_client = InfluxDBClient(
             url=f"https://{INFLUXDB_ENDPOINT}:8086",
-            token=creds['password'],  # InfluxDB uses password as token
-            org=INFLUXDB_ORG
+            username=creds['username'],
+            password=creds['password'],
+            org=INFLUXDB_ORG,
+            verify_ssl=False,  # AWS Timestream for InfluxDB uses self-signed certs
+            timeout=10000  # 10 second timeout
         )
         _influxdb_write_api = _influxdb_client.write_api(write_options=SYNCHRONOUS)
-    
+
+        # Test connection by trying to list buckets
+        try:
+            buckets_api = _influxdb_client.buckets_api()
+            buckets = buckets_api.find_buckets().buckets
+            print(f"✅ Successfully connected to InfluxDB. Found {len(buckets)} buckets")
+            for bucket in buckets:
+                print(f"  - Bucket: {bucket.name} (ID: {bucket.id})")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not list buckets: {str(e)}")
+
+        print(f"✅ InfluxDB client initialized for org: {INFLUXDB_ORG}, bucket: {INFLUXDB_BUCKET}")
+
     return _influxdb_client, _influxdb_write_api
 
 
@@ -193,9 +218,13 @@ def process_bike_telemetry(data):
             write_api.write(bucket=INFLUXDB_BUCKET, record=point)
         
         print(f"✅ Wrote historical metrics to InfluxDB for bike {bike_id}")
-        
+
     except Exception as e:
-        print(f"⚠️  Failed to write to InfluxDB: {str(e)}")
+        print(f"⚠️  Failed to write to InfluxDB for bike {bike_id}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        traceback.print_exc()
         # Don't fail the entire record if InfluxDB write fails
 
 
@@ -281,9 +310,13 @@ def process_station_energy(data):
             write_api.write(bucket=INFLUXDB_BUCKET, record=point)
         
         print(f"✅ Wrote historical metrics to InfluxDB for station {station_id}")
-        
+
     except Exception as e:
-        print(f"⚠️  Failed to write to InfluxDB: {str(e)}")
+        print(f"⚠️  Failed to write to InfluxDB for station {station_id}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        traceback.print_exc()
         # Don't fail the entire record if InfluxDB write fails
 
 
