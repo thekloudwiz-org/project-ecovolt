@@ -14,7 +14,7 @@ Requirements: Works in Private VPC with NO NAT Gateway
 import os
 import json
 import base64
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 import jwt
 from jwt.algorithms import RSAAlgorithm
 from functools import wraps
