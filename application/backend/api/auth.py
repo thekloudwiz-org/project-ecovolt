@@ -373,7 +373,8 @@ def admin_create_user_endpoint(event: Dict[str, Any], context: Any) -> Dict[str,
         if subscription not in ['basic', 'premium']:
             subscription = 'basic'
         
-        # Create user in Cognito
+        # Create user in Cognito only
+        # Database record will be created automatically on first login (via user_sync.py)
         result = admin_create_user(email, name, phone, subscription)
         if not result:
             return {
@@ -383,50 +384,39 @@ def admin_create_user_endpoint(event: Dict[str, Any], context: Any) -> Dict[str,
                     'details': 'Could not create user in authentication service'
                 })
             }
-        
-        # Create user record in database
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Check if user already exists
-            cursor.execute(Queries.GET_USER_BY_EMAIL, (email,))
-            existing = cursor.fetchone()
-            
-            if existing:
+
+        # Check for errors
+        if 'error' in result:
+            if result['error'] == 'user_exists':
                 return {
                     'statusCode': 409,
                     'body': json.dumps({
                         'error': 'User already exists',
-                        'details': f'A user with email {email} already exists'
+                        'details': result['message']
                     })
                 }
-            
-            # Insert new user
-            cursor.execute(
-                """
-                INSERT INTO users (user_id, email, name, phone, subscription, wallet_balance, total_swaps, created_at)
-                VALUES (%s, %s, %s, %s, %s, 0, 0, NOW())
-                RETURNING *
-                """,
-                (result['user_id'], email, name, phone, subscription)
-            )
-            user = cursor.fetchone()
-        
+            else:
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({
+                        'error': 'Failed to create user',
+                        'details': result.get('message', 'Unknown error')
+                    })
+                }
+
         return {
             'statusCode': 201,
             'body': json.dumps({
-                'message': 'User created successfully',
+                'message': 'User created successfully. Database record will be created on first login.',
                 'user': {
-                    'user_id': user['user_id'],
-                    'email': user['email'],
-                    'name': user['name'],
-                    'phone': user['phone'],
-                    'subscription': user['subscription'],
-                    'wallet_balance': float(user['wallet_balance']),
-                    'created_at': user['created_at'].isoformat() if user.get('created_at') else None
+                    'user_id': result['user_id'],
+                    'email': result['email'],
+                    'name': name,
+                    'phone': phone,
+                    'subscription': subscription
                 },
                 'temporary_password': result['temporary_password'],
-                'note': 'User must change password on first login'
+                'note': 'User must change password on first login. Subscription can be updated by admin after first login.'
             })
         }
         

@@ -66,6 +66,7 @@ ROUTES = {
     'GET /admin/users': admin.list_users,
     'GET /admin/users/{id}': admin.get_user_details,
     'PUT /admin/users/{id}/wallet': admin.adjust_user_wallet,
+    'PUT /admin/users/{id}/subscription': admin.update_user_subscription,
 }
 
 # Public routes that don't require authentication

@@ -1999,6 +1999,116 @@ def adjust_user_wallet(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
 
+def update_user_subscription(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    PUT /admin/users/{id}/subscription
+    Update user subscription tier
+
+    Requirements: 8.1
+    """
+    try:
+        # Get authenticated user
+        user = event.get('user')
+        if not user:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({
+                    'error': 'Unauthorized',
+                    'details': 'Authentication required'
+                })
+            }
+
+        # Verify admin role
+        if not check_admin_role(user):
+            return {
+                'statusCode': 403,
+                'body': json.dumps({
+                    'error': 'Forbidden',
+                    'details': 'Admin access required'
+                })
+            }
+
+        # Get user ID from path
+        user_id = event.get('pathParameters', {}).get('id')
+        if not user_id:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Missing user ID'
+                })
+            }
+
+        # Parse request body
+        body = json.loads(event.get('body', '{}'))
+        subscription = body.get('subscription', '').strip().lower()
+
+        # Validate subscription
+        if subscription not in ['basic', 'premium']:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Invalid subscription',
+                    'details': 'Subscription must be "basic" or "premium"'
+                })
+            }
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Update subscription
+            cursor.execute(
+                """
+                UPDATE users
+                SET subscription = %s, updated_at = NOW()
+                WHERE user_id = %s
+                RETURNING *
+                """,
+                (subscription, user_id)
+            )
+            updated_user = cursor.fetchone()
+
+        if not updated_user:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({
+                    'error': 'User not found'
+                })
+            }
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'Subscription updated successfully',
+                'user': {
+                    'user_id': updated_user['user_id'],
+                    'email': updated_user['email'],
+                    'name': updated_user['name'],
+                    'subscription': updated_user['subscription'],
+                    'updated_at': updated_user['updated_at'].isoformat() if updated_user.get('updated_at') else None
+                }
+            })
+        }
+
+    except json.JSONDecodeError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'error': 'Invalid JSON in request body'
+            })
+        }
+    except Exception as e:
+        print(f"Error updating subscription: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': 'Internal server error',
+                'message': str(e) if os.getenv('ENVIRONMENT') == 'dev' else 'An error occurred'
+            })
+        }
+
+
 def create_user(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     POST /admin/users

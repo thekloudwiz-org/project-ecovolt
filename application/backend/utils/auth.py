@@ -469,7 +469,22 @@ def admin_create_user(email: str, name: str, phone: str, subscription: str = 'ba
         }
         
     except Exception as e:
+        import botocore.exceptions
+
+        error_code = e.response.get('Error', {}).get('Code', '') if hasattr(e, 'response') else ''
+
+        # Handle specific Cognito errors
+        if error_code == 'UsernameExistsException':
+            print(f"User already exists in Cognito: {email}")
+            return {
+                'error': 'user_exists',
+                'message': f'User with email {email} already exists'
+            }
+
         print(f"Error creating user via admin: {str(e)}")
         import traceback
         traceback.print_exc()
-        return None
+        return {
+            'error': 'cognito_error',
+            'message': str(e)
+        }
