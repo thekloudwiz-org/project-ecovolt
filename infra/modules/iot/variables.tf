@@ -47,6 +47,12 @@ variable "enable_device_defender" {
   default     = false
 }
 
+variable "kms_key_arn" {
+  description = "ARN of KMS key for encrypting Kinesis stream data"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)

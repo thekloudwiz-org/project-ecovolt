@@ -144,9 +144,10 @@ def process_bike_telemetry(data):
         'gpsLat': convert_floats_to_decimal(location.get('lat', 0)),
         'gpsLon': convert_floats_to_decimal(location.get('lon', 0)),
         'lastSeen': int(timestamp.timestamp()),
+        'lastUpdated': int(timestamp.timestamp()),  # Required for UserBikesIndex GSI
         'speed': convert_floats_to_decimal(data.get('speed', 0)),
         'odometer': data.get('odometer', 0),
-        'userId': data.get('userId', None)
+        'userId': data.get('userId', 'unassigned')  # Use placeholder for GSI compatibility
     }
     
     # Use UpdateItem to OVERWRITE current state (not create new rows)

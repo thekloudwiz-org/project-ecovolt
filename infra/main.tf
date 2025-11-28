@@ -83,6 +83,7 @@ module "iot" {
   project_name                 = var.project_name
   environment                  = var.environment
   telemetry_kinesis_stream_arn = module.analytics.kinesis_stream_arn
+  kms_key_arn                  = module.security.kms_key_arn
   enable_logging               = true
   enable_fleet_indexing        = true
 

@@ -196,6 +196,13 @@ resource "aws_iam_role_policy" "lambda_processor" {
       {
         Effect = "Allow"
         Action = [
+          "kms:Decrypt"
+        ]
+        Resource = var.kms_key_arn != "" ? var.kms_key_arn : "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "dynamodb:PutItem",
           "dynamodb:UpdateItem",
           "dynamodb:BatchWriteItem"
@@ -252,7 +259,7 @@ resource "aws_lambda_function" "stream_processor" {
   filename      = "${path.module}/lambda/stream_processor.zip"
   function_name = local.lambda_stream_processor_name
   role          = aws_iam_role.lambda_processor.arn
-  handler       = "index.handler"
+  handler       = "stream_processor.handler"
   runtime       = "python3.11"
   timeout       = 60
   memory_size   = 256

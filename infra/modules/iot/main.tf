@@ -380,6 +380,14 @@ resource "aws_iam_role_policy" "iot_rules_kinesis" {
           "kinesis:PutRecords"
         ]
         Resource = var.telemetry_kinesis_stream_arn != "" ? var.telemetry_kinesis_stream_arn : "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:GenerateDataKey",
+          "kms:Decrypt"
+        ]
+        Resource = var.kms_key_arn != "" ? var.kms_key_arn : "*"
       }
     ]
   })
