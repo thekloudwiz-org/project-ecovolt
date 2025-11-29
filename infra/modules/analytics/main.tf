@@ -302,12 +302,14 @@ resource "aws_lambda_function" "stream_processor" {
 }
 
 # Lambda Event Source Mapping for Kinesis
+# Optimized for near real-time processing
 resource "aws_lambda_event_source_mapping" "kinesis_processor" {
   event_source_arn                   = aws_kinesis_stream.telemetry.arn
   function_name                      = aws_lambda_function.stream_processor.arn
   starting_position                  = "LATEST"
-  batch_size                         = 100
-  maximum_batching_window_in_seconds = 5
+  batch_size                         = 10  # Reduced from 100 for faster processing
+  maximum_batching_window_in_seconds = 1   # Reduced from 5 for near real-time (1 second)
+  parallelization_factor             = 1   # Process records in order
 
   depends_on = [aws_iam_role_policy.lambda_processor]
 }

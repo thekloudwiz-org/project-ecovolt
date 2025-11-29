@@ -132,16 +132,17 @@ variable "tags" {
 }
 
 # Kinesis Firehose Variables
+# Optimized for near real-time delivery to S3
 variable "firehose_buffer_size" {
-  description = "Firehose buffer size in MB (1-128)"
+  description = "Firehose buffer size in MB (1-128). Lower values = faster delivery but more S3 objects"
   type        = number
-  default     = 5
+  default     = 1  # Minimum size for fastest delivery
 }
 
 variable "firehose_buffer_interval" {
-  description = "Firehose buffer interval in seconds (60-900)"
+  description = "Firehose buffer interval in seconds (60-900). Lower values = faster delivery"
   type        = number
-  default     = 300
+  default     = 60  # Minimum interval (1 minute) for near real-time
 }
 
 variable "enable_firehose_transformation" {
