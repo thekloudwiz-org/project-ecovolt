@@ -22,7 +22,7 @@ IoT Core → Kinesis Data Stream → Lambda Processor → Timestream
 - **Encryption**: Optional KMS encryption
 - **Metrics**: Comprehensive CloudWatch metrics enabled
 
-### Timestream Database
+### Timestream Database (InfluxDB)
 - **Purpose**: Time-series storage for fast queries on recent data
 - **Tables**:
   - `bike-telemetry`: bike battery, location, and operational data
