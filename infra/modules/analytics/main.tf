@@ -255,7 +255,7 @@ resource "aws_iam_role_policy" "lambda_processor" {
 }
 
 # Lambda Function for Kinesis Stream Processing
-# Note: Lambda packages are built by GitHub Actions workflow before terraform runs
+# Note: Has dependencies (influxdb-client) - ZIP built by CI/CD workflow
 # For local development, run: scripts/build-lambdas.sh
 resource "aws_lambda_function" "stream_processor" {
   filename      = "${path.module}/lambda/stream_processor.zip"
@@ -361,12 +361,20 @@ resource "aws_iam_role_policy" "lambda_transformer" {
   })
 }
 
+# Archive data_transformer (no dependencies)
+data "archive_file" "data_transformer" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/data_transformer.py"
+  output_path = "${path.module}/lambda/data_transformer.zip"
+}
+
 # Lambda Function for Data Transformation
 resource "aws_lambda_function" "data_transformer" {
-  filename      = "${path.module}/lambda/data_transformer.zip"
-  function_name = local.lambda_transformer_name
-  role          = aws_iam_role.lambda_transformer.arn
-  handler       = "index.handler"
+  filename         = data.archive_file.data_transformer.output_path
+  source_code_hash = data.archive_file.data_transformer.output_base64sha256
+  function_name    = local.lambda_transformer_name
+  role             = aws_iam_role.lambda_transformer.arn
+  handler          = "data_transformer.handler"
   runtime       = "python3.11"
   timeout       = 300
   memory_size   = 512

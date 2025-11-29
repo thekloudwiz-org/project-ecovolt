@@ -65,6 +65,18 @@ resource "aws_iam_role_policy" "firehose" {
       {
         Effect = "Allow"
         Action = [
+          "kms:Decrypt"
+        ]
+        Resource = var.kms_key_arn
+        Condition = {
+          StringLike = {
+            "kms:ViaService" = "kinesis.${data.aws_region.current.name}.amazonaws.com"
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "kms:Decrypt",
           "kms:GenerateDataKey"
         ]
@@ -169,14 +181,22 @@ resource "aws_kinesis_firehose_delivery_stream" "telemetry_to_s3" {
   tags = var.tags
 }
 
+# Archive firehose_transformer (no dependencies)
+data "archive_file" "firehose_transformer" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/firehose_transformer.py"
+  output_path = "${path.module}/lambda/firehose_transformer.zip"
+}
+
 # Lambda function for data transformation (optional)
 resource "aws_lambda_function" "firehose_transformer" {
   count = var.enable_firehose_transformation ? 1 : 0
 
-  filename      = "${path.module}/lambda/firehose_transformer.zip"
-  function_name = "${var.project_name}-${var.environment}-firehose-transformer"
-  role          = aws_iam_role.firehose_transformer[0].arn
-  handler       = "firehose_transformer.lambda_handler"
+  filename         = data.archive_file.firehose_transformer.output_path
+  source_code_hash = data.archive_file.firehose_transformer.output_base64sha256
+  function_name    = "${var.project_name}-${var.environment}-firehose-transformer"
+  role             = aws_iam_role.firehose_transformer[0].arn
+  handler          = "firehose_transformer.lambda_handler"
   runtime       = "python3.11"
   timeout       = 60
   memory_size   = 256
@@ -243,6 +263,17 @@ resource "aws_cloudwatch_log_group" "firehose_transformer" {
   retention_in_days = var.log_retention_days
 
   tags = var.tags
+}
+
+# Lambda permission for Firehose to invoke transformer
+resource "aws_lambda_permission" "allow_firehose" {
+  count = var.enable_firehose_transformation ? 1 : 0
+
+  statement_id  = "AllowExecutionFromFirehose"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.firehose_transformer[0].function_name
+  principal     = "firehose.amazonaws.com"
+  source_arn    = aws_kinesis_firehose_delivery_stream.telemetry_to_s3.arn
 }
 
 # CloudWatch Alarms for Firehose

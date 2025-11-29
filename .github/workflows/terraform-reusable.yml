@@ -182,10 +182,23 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Build Lambda Functions
+      - name: Build Lambda Functions with Dependencies
         run: |
-          chmod +x scripts/build-lambdas.sh
-          ./scripts/build-lambdas.sh
+          # Only build Lambda functions that have dependencies
+          # Functions without dependencies use archive_file data source in Terraform
+          
+          cd infra/modules/analytics/lambda
+          
+          # Build stream_processor (has influxdb-client dependency)
+          echo "Building stream_processor with dependencies..."
+          pip install --target ./package -r requirements.txt --quiet
+          cp stream_processor.py package/
+          cd package
+          zip -r ../stream_processor.zip . -q
+          cd ..
+          rm -rf package
+          
+          echo "✓ Built stream_processor.zip"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -231,7 +244,7 @@ jobs:
             ${{ inputs.working_directory }}/${{ inputs.environment }}.tfplan
             ${{ inputs.working_directory }}/plan-output.txt
             ${{ inputs.working_directory }}/modules/compute/lambda/*.zip
-            ${{ inputs.working_directory }}/modules/analytics/lambda/*.zip
+            ${{ inputs.working_directory }}/modules/analytics/lambda/stream_processor.zip
           retention-days: 5
 
       - name: Comment Plan on PR
