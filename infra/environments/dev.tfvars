@@ -1,4 +1,5 @@
 # Development Environment Configuration
+# Cycle error fixed: Removed explicit depends_on from IoT module
 
 environment = "dev"
 aws_region  = "eu-central-1"
