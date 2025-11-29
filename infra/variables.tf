@@ -368,6 +368,16 @@ variable "redis_auth_token" {
 }
 
 # ========================================
+# Analytics Variables
+# ========================================
+
+variable "enable_firehose_transformation" {
+  description = "Enable Lambda transformation for Firehose data"
+  type        = bool
+  default     = false
+}
+
+# ========================================
 # DNS Variables
 # ========================================
 
