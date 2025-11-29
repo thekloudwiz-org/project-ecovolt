@@ -143,17 +143,17 @@ output "iot_logging_enabled" {
 # SSM Parameter Store Paths
 output "ssm_iot_endpoint_parameter" {
   description = "SSM Parameter name for IoT endpoint"
-  value       = aws_ssm_parameter.iot_endpoint.name
+  value       = "${local.ssm_prefix}/endpoint"
 }
 
 output "ssm_iot_policy_arn_parameter" {
   description = "SSM Parameter name for IoT policy ARN"
-  value       = aws_ssm_parameter.iot_policy_arn.name
+  value       = "${local.ssm_prefix}/policy-arn"
 }
 
 output "ssm_firmware_bucket_parameter" {
   description = "SSM Parameter name for firmware bucket"
-  value       = aws_ssm_parameter.firmware_bucket.name
+  value       = "${local.ssm_prefix}/firmware-bucket"
 }
 
 output "ssm_parameter_prefix" {
