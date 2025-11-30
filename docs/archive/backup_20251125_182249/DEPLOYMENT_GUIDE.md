@@ -286,7 +286,7 @@ curl -X POST "${API_URL}/auth/register" \
     "email": "test@example.com",
     "password": "TestPass123!",
     "name": "Test User",
-    "phone": "+233201234567"
+    "phone": "+233XXXXXXXXX"
   }'
 ```
 
@@ -353,7 +353,7 @@ curl -X POST "${API_URL}/auth/register" \
     "email": "rider@example.com",
     "password": "SecurePass123!",
     "name": "John Doe",
-    "phone": "+233201234567"
+    "phone": "+233XXXXXXXXX"
   }'
 
 # 2. Confirm email (check email for code)

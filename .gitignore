@@ -181,4 +181,4 @@ application/backend/*.zip
 *.log
 infra/apply.log
 
-/docs/archive*
+/docs/archive*application/admin-portal/.env

@@ -359,7 +359,7 @@ See [Testing Documentation](scripts/testing/README.md) for comprehensive test su
 │   ├── FRONTEND.md                    # Frontend apps docs
 │   ├── COST_ESTIMATION.md             # Cost analysis
 │   ├── GITHUB_SECRETS_AUTOMATION.md   # CI/CD automation
-│   └── architecture.jpeg              # Architecture diagram
+│   └── architecture.webp              # Architecture diagram
 │
 ├── infra/                             # Terraform infrastructure
 │   ├── main.tf                        # Root module

@@ -269,11 +269,11 @@ AZ-C (eu-central-1c):
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Internet → CloudFront (443)                                 │
-│            ↓                                                 │
+│            ↓                                                │
 │         API Gateway (Regional, HTTPS only)                  │
-│            ↓                                                 │
-│         Lambda SG (no ingress, egress to RDS/VPC endpoints)│
-│            ↓                                                 │
+│            ↓                                                │
+│         Lambda SG (no ingress, egress to RDS/VPC endpoints) │
+│            ↓                                                │
 │         RDS SG (5432 from Lambda SG only)                   │
 │         DynamoDB (VPC Endpoint - no security group)         │
 └─────────────────────────────────────────────────────────────┘
@@ -312,16 +312,16 @@ ssm (Parameter Store for configuration)
 
 ### Deployed Resources Breakdown (359 Total)
 
-| Category | Count | Key Resources |
-|----------|-------|---------------|
-| **Networking** | ~50 | VPC, 9 Subnets, 4 VPC Endpoints, 15+ Security Groups |
-| **Compute** | ~40 | 6 Lambda Functions, API Gateway, Event Source Mappings |
-| **Storage** | ~30 | 7 DynamoDB Tables, 9 S3 Buckets, RDS Instance |
-| **Security** | ~45 | IAM Roles/Policies, KMS Keys, Cognito Pools |
-| **IoT & Streaming** | ~25 | IoT Core, IoT Rules, Kinesis Streams, Firehose |
-| **Monitoring** | ~35 | CloudWatch Alarms, SNS Topics, Log Groups |
-| **Content Delivery** | ~15 | CloudFront Distributions, Route53 Records |
-| **Other** | ~119 | SSM Parameters, Secrets, Tags, etc. |
+| Category             | Count | Key Resources                                          |
+|----------------------|-------|--------------------------------------------------------|
+| **Networking**       | ~50   | VPC, 9 Subnets, 4 VPC Endpoints, 15+ Security Groups   |
+| **Compute**          | ~40   | 6 Lambda Functions, API Gateway, Event Source Mappings |
+| **Storage**          | ~30   | 7 DynamoDB Tables, 9 S3 Buckets, RDS Instance          |
+| **Security**         | ~45   | IAM Roles/Policies, KMS Keys, Cognito Pools            |
+| **IoT & Streaming**  | ~25   | IoT Core, IoT Rules, Kinesis Streams, Firehose         |
+| **Monitoring**       | ~35   | CloudWatch Alarms, SNS Topics, Log Groups              |
+| **Content Delivery** | ~15   | CloudFront Distributions, Route53 Records              |
+| **Other**            | ~119  | SSM Parameters, Secrets, Tags, etc.                    |
 
 ---
 
@@ -348,21 +348,21 @@ ssm (Parameter Store for configuration)
 
 ### Horizontal Scaling (Automatic)
 
-| Service | Scaling Method | Limits |
-|---------|----------------|--------|
-| **Lambda** | Concurrent executions | 1000 default, request increase |
-| **API Gateway** | Automatic | 10,000 RPS default |
-| **Kinesis** | Add shards | Currently 2, can add more |
-| **DynamoDB** | On-demand capacity | Automatic scaling |
-| **CloudFront** | Global edge network | Unlimited |
+| Service         | Scaling Method        | Limits                         |
+|-----------------|-----------------------|--------------------------------|
+| **Lambda**      | Concurrent executions | 1000 default, request increase |
+| **API Gateway** | Automatic             | 10,000 RPS default             |
+| **Kinesis**     | Add shards            | Currently 2, can add more      |
+| **DynamoDB**    | On-demand capacity    | Automatic scaling              |
+| **CloudFront**  | Global edge network   | Unlimited                      |
 
 ### Vertical Scaling (Manual)
 
-| Service | Current (Dev) | Production Recommendation |
-|---------|---------------|---------------------------|
-| **RDS** | db.t3.micro | db.r6g.large (multi-AZ) |
-| **Lambda Memory** | 512MB | 1024MB (CPU scales with memory) |
-| **Kinesis Shards** | 2 shards | 5-10 shards (1000 writes/sec each) |
+| Service            | Current (Dev) | Production Recommendation          |
+|--------------------|---------------|------------------------------------|
+| **RDS**            | db.t3.micro   | db.r6g.large (multi-AZ)            |
+| **Lambda Memory**  | 512MB         | 1024MB (CPU scales with memory)    |
+| **Kinesis Shards** | 2 shards      | 5-10 shards (1000 writes/sec each) |
 
 ### Geographic Scaling (Multi-Region)
 
@@ -412,11 +412,11 @@ Route 53:
 
 ### RTO/RPO Targets
 
-| Tier | RTO (Recovery Time) | RPO (Data Loss) | Cost Impact |
-|------|---------------------|-----------------|-------------|
-| **Development** | 4 hours | 24 hours | Baseline |
-| **Staging** | 1 hour | 1 hour | +60% |
-| **Production** | 15 minutes | 5 minutes | +150% |
+| Tier            | RTO (Recovery Time) | RPO (Data Loss) | Cost Impact |
+|-----------------|---------------------|-----------------|-------------|
+| **Development** | 4 hours             | 24 hours        | Baseline    |
+| **Staging**     | 1 hour              | 1 hour          | +60%        |
+| **Production**  | 15 minutes          | 5 minutes       | +150%       |
 
 ### Disaster Recovery Strategy
 
@@ -491,22 +491,22 @@ Layer 5: Incident Response
 
 ### Implemented Strategies
 
-| Strategy | Implementation | Savings |
-|----------|----------------|---------|
-| **No NAT Gateway** | VPC Endpoints + Terraform injection | $40+/month |
-| **Polyglot Persistence** | Right DB for each workload | $110/month |
-| **Serverless** | Lambda vs EC2 | $200+/month |
-| **On-Demand Pricing** | DynamoDB, Lambda pay-per-use | Variable |
-| **S3 Lifecycle** | Archive to Glacier after 90 days | 70% storage cost |
-| **Reserved Capacity** | (Production) RDS 1-year reservation | 40% discount |
+| Strategy                  | Implementation                      | Savings          |
+|---------------------------|-------------------------------------|------------------|
+| **No NAT Gateway**        | VPC Endpoints + Terraform injection | $40+/month       |
+| **Polyglot Persistence**  | Right DB for each workload          | $110/month       |
+| **Serverless**            | Lambda vs EC2                       | $200+/month      |
+| **On-Demand Pricing**     | DynamoDB, Lambda pay-per-use        | Variable         |
+| **S3 Lifecycle**          | Archive to Glacier after 90 days    | 70% storage cost |
+| **Reserved Capacity**     | (Production) RDS 1-year reservation | 40% discount     |
 
 ### Cost Comparison
 
-| Environment | Traditional Architecture | EcoVolt Architecture | Savings |
-|-------------|-------------------------|----------------------|---------|
-| **Development** | $200/month | **$90/month** | **55%** |
-| **Staging** | $1200/month | $800/month | 33% |
-| **Production** | $4000/month | $2500/month | 38% |
+| Environment     | Traditional Architecture   | EcoVolt Architecture | Savings |
+|-----------------|----------------------------|----------------------|---------|
+| **Development** | $200/month                 | **$90/month**        | **55%** |
+| **Staging**     | $1200/month                | $800/month           | 33%     |
+| **Production**  | $4000/month                | $2500/month          | 38%     |
 
 **Traditional Architecture** = NAT Gateway + RDS (single large instance) + EC2 for all processing
 
@@ -553,15 +553,15 @@ Layer 5: Incident Response
 
 ### Alert Thresholds
 
-| Severity | Condition | Action |
-|----------|-----------|--------|
-| **Critical** | Lambda errors > 10% | PagerDuty + Email |
-| **Critical** | RDS storage < 10GB | PagerDuty + Email |
-| **Critical** | API 5XX errors > 5% | PagerDuty + Email |
-| **Warning** | Lambda duration > 10s | Email |
-| **Warning** | DynamoDB throttling | Email |
-| **Warning** | Kinesis iterator age > 60s | Email |
-| **Info** | Budget > 80% forecast | Email |
+| Severity     | Condition                  | Action            |
+|--------------|----------------------------|-------------------|
+| **Critical** | Lambda errors > 10%        | PagerDuty + Email |
+| **Critical** | RDS storage < 10GB         | PagerDuty + Email |
+| **Critical** | API 5XX errors > 5%        | PagerDuty + Email |
+| **Warning**  | Lambda duration > 10s      | Email             |
+| **Warning**  | DynamoDB throttling        | Email             |
+| **Warning**  | Kinesis iterator age > 60s | Email             |
+| **Info**     | Budget > 80% forecast      | Email             |
 
 ---
 

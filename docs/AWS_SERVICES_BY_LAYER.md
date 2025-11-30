@@ -13,9 +13,9 @@
 
 | Service | Purpose | Configuration | Cost/Month |
 |---------|---------|---------------|------------|
-| **AWS IoT Core** | MQTT message broker for device connectivity | - 3 Thing Types (bike, station, battery)<br>- X.509 certificate authentication<br>- 3 IoT Rules for routing | $5 |
+| **AWS IoT Core**  | MQTT message broker for device connectivity | - 3 Thing Types (bike, station, battery)<br>- X.509 certificate authentication<br>- 3 IoT Rules for routing | $5 |
 | **IoT Device Registry** | Device identity and metadata management | - Thing registry<br>- Certificate management<br>- Policy attachments | Included |
-| **IoT Rules Engine** | SQL-based message routing | - Rule: `ecovolt_dev_bike_telemetry`<br>- Rule: `ecovolt_dev_station_energy`<br>- Rule: `ecovolt_dev_station_swap` | Included |
+| **IoT Rules Engine**    | SQL-based message routing | - Rule: `ecovolt_dev_bike_telemetry`<br>- Rule: `ecovolt_dev_station_energy`<br>- Rule: `ecovolt_dev_station_swap` | Included |
 
 **Total Ingestion Layer:** ~$5/month
 

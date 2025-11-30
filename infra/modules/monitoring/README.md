@@ -22,7 +22,7 @@ module "monitoring" {
 
   # Notification configuration
   alarm_email_addresses = ["thekloudwiz+ecovolt@gmail.com", "thekloudwiz+ecovolt@gmail.com"]
-  alarm_phone_numbers   = ["+233549379885"]
+  alarm_phone_numbers   = ["+233XXXXXXXXX"]  # Replace with your phone number
 
   # Lambda monitoring
   lambda_function_names = [

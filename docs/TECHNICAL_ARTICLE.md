@@ -669,13 +669,13 @@ Shows real-time system health without running tests.
 
 ### Latency Benchmarks
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| IoT → DynamoDB | < 5s | 2.8s | ✅ |
-| API Response (p95) | < 200ms | 145ms | ✅ |
-| Lambda Cold Start | < 2s | 1.28s | ✅ |
-| Lambda Warm | < 500ms | 265ms | ✅ |
-| InfluxDB Write | < 1s | 642ms | ✅ |
+| Metric             | Target  | Actual | Status |
+|--------------------|---------|--------|--------|
+| IoT → DynamoDB     | < 5s    | 2.8s   | ✅     |
+| API Response (p95) | < 200ms | 145ms  | ✅     |
+| Lambda Cold Start  | < 2s    | 1.28s  | ✅     |
+| Lambda Warm        | < 500ms | 265ms  | ✅     |
+| InfluxDB Write     | < 1s    | 642ms  | ✅     |
 
 ### Throughput
 
