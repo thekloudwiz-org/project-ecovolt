@@ -9,6 +9,7 @@ on:
       - 'infra/**/*.tfvars'
       - '.github/workflows/prod.yml'
       - '.github/workflows/terraform-reusable.yml'
+      - '!**/*.md'
   push:
     branches:
       - main
@@ -17,6 +18,7 @@ on:
       - 'infra/**/*.tfvars'
       - '.github/workflows/prod.yml'
       - '.github/workflows/terraform-reusable.yml'
+      - '!**/*.md'
 
 permissions:
   id-token: write

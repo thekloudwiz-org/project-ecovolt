@@ -9,12 +9,15 @@ on:
       - '.github/workflows/admin-portal-prod.yml'
       - '.github/workflows/admin-portal-reusable.yml'
       - '!application/admin-portal/**/*.md'
+      - '!**/*.md'
+      - '!application/admin-portal/**/*.md'
   pull_request:
     branches:
       - main
     paths:
       - 'application/admin-portal/**'
       - '!application/admin-portal/**/*.md'
+      - '!**/*.md'
 
 permissions:
   id-token: write

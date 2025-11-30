@@ -9,6 +9,7 @@ on:
       - 'infra/**/*.tfvars'
       - '.github/workflows/staging.yml'
       - '.github/workflows/terraform-reusable.yml'
+      - '!**/*.md'
   push:
     branches:
       - staging
@@ -17,6 +18,7 @@ on:
       - 'infra/**/*.tfvars'
       - '.github/workflows/staging.yml'
       - '.github/workflows/terraform-reusable.yml'
+      - '!**/*.md'
 
 permissions:
   id-token: write

@@ -9,12 +9,15 @@ on:
       - '.github/workflows/mobile-dev.yml'
       - '.github/workflows/mobile-reusable.yml'
       - '!application/mobile/**/*.md'
+      - '!**/*.md'
+      - '!application/mobile/**/*.md'
   pull_request:
     branches:
       - dev
     paths:
       - 'application/mobile/**'
       - '!application/mobile/**/*.md'
+      - '!**/*.md'
 
 permissions:
   contents: read

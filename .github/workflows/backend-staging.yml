@@ -9,12 +9,15 @@ on:
       - '.github/workflows/backend-staging.yml'
       - '.github/workflows/backend-reusable.yml'
       - '!application/backend/**/*.md'
+      - '!**/*.md'
+      - '!application/backend/**/*.md'
   pull_request:
     branches:
       - staging
     paths:
       - 'application/backend/**'
       - '!application/backend/**/*.md'
+      - '!**/*.md'
 
 permissions:
   id-token: write
