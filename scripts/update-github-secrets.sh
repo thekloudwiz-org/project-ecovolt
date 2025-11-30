@@ -74,20 +74,7 @@ update_secret() {
     return
   fi
 
-  # Get repository public key for encryption
-  local key_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-    "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/secrets/public-key")
-
-  local public_key=$(echo "$key_response" | jq -r '.key')
-  local key_id=$(echo "$key_response" | jq -r '.key_id')
-
-  if [ -z "$public_key" ] || [ "$public_key" == "null" ]; then
-    echo -e "${RED}❌ Failed to get public key for $secret_name${NC}"
-    return 1
-  fi
-
-  # Encrypt the secret using libsodium (requires libsodium-wrappers)
-  # For GitHub Actions, we'll use the gh CLI instead
+  # Use GitHub CLI (preferred method)
   if command -v gh &> /dev/null; then
     # Use GitHub CLI (preferred method)
     if [ -n "$env_name" ]; then
