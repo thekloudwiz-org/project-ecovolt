@@ -185,6 +185,73 @@ Displays CloudWatch metrics for the IoT pipeline.
 
 ---
 
+### 4b. Full System Verification (Python) ⭐ **ENHANCED**
+**Script:** `full_system_verification.py`
+
+Comprehensive Python-based end-to-end verification and monitoring tool that combines all testing capabilities with enhanced monitoring features.
+
+**Usage:**
+```bash
+# Run full verification test (recommended for first-time testing)
+python3 full_system_verification.py
+
+# Run monitoring dashboard only (recommended for ongoing monitoring)
+python3 full_system_verification.py --monitor
+
+# Monitor with custom time range (e.g., last 2 hours)
+python3 full_system_verification.py --monitor --time-range 120
+
+# Use different region/environment
+python3 full_system_verification.py --region us-east-1 --environment prod
+```
+
+**Features:**
+
+**Full Verification Mode (default):**
+- Phase 1: Inject unique test data via IoT Core
+- Phase 2: Verify State Layer (DynamoDB)
+- Phase 3: Verify History Layer (Timestream InfluxDB)
+- Phase 4: Verify Data Lake (S3 via Firehose)
+- Bonus: Verify Kinesis Stream
+- Final Report: Pass/fail summary with recommendations
+
+**Monitoring Mode (`--monitor` flag):**
+- **IoT Core Metrics:** Messages published, rules executed per rule
+- **Kinesis Metrics:** Incoming records, bytes, flow rate, iterator age
+- **Lambda Metrics:** Invocations, errors, throttles, duration, success rate
+- **DynamoDB Metrics:** Item count, user/system errors
+- **Recent Lambda Logs:** Last 10 log entries with timestamps
+- **IoT Rules Status:** Enabled/disabled status for each rule
+
+**Advantages over Shell Scripts:**
+- ✅ Single command for complete testing
+- ✅ Automatic retry logic with intelligent waiting
+- ✅ Color-coded output for easy reading
+- ✅ Comprehensive error handling
+- ✅ Detailed progress tracking
+- ✅ Actionable recommendations
+- ✅ No need to track device IDs manually
+- ✅ Integrated monitoring dashboard
+- ✅ Customizable time ranges for metrics
+
+**Example Workflows:**
+
+```bash
+# First-time testing
+python3 full_system_verification.py
+
+# Ongoing monitoring (every 5 minutes)
+watch -n 300 'python3 full_system_verification.py --monitor'
+
+# Extended time range monitoring
+python3 full_system_verification.py --monitor --time-range 120
+
+# Production environment monitoring
+python3 full_system_verification.py --monitor --environment prod
+```
+
+---
+
 ### 5. Run Complete Test
 **Script:** `05-run-complete-test.sh`
 

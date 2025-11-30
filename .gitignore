@@ -126,6 +126,59 @@ scripts/*_test.py
 
 # Archived Workflows
 .github/workflows/*.old
-.github/workflows/mobile-app-ci-cd.yml.oldscripts/testing/certs/
+.github/workflows/mobile-app-ci-cd.yml.old
+
+# Testing artifacts and generated documentation
+scripts/testing/certs/
 scripts/testing/package/
+scripts/testing/METRICS_SUMMARY.md
+scripts/testing/CLOUDWATCH_DASHBOARD_GUIDE.md
+scripts/testing/QUICK_START.md
+scripts/testing/ENHANCEMENT_SUMMARY.md
+scripts/testing/INFLUXDB_SETUP.md
 **/lambda/package/
+
+# Module implementation documentation (superseded by main docs)
+infra/modules/**/IMPLEMENTATION_SUMMARY.md
+infra/modules/**/UPDATES_SUMMARY.md
+infra/modules/**/NAMING_AND_SSM.md
+
+# Root level working files (keep documentation in docs/)
+/DEPLOYMENT_SUMMARY.md
+/LATEST_TEST_SUMMARY.md
+/PROJECT_MASTER_REPORT.md
+/CLEANUP_PLAN.md
+
+# Application module working files
+application/**/IMPLEMENTATION_COMPLETE.md
+application/**/IMPLEMENTATION_SUMMARY.md
+
+# GuardDuty test findings
+guardduty-findings-*.json
+
+# Screenshots (large binary files - consider separate storage)
+# docs/screenshots/*.png
+
+# IDE-specific folders
+.claude/
+.kiro/
+
+# Terraform plan files
+*.tfplan
+infra/*.tfplan
+
+# Build artifacts
+*.zip
+!terraform.tfvars.example
+lambda-deployment.zip
+application/backend/*.zip
+
+# macOS system files
+.DS_Store
+**/.DS_Store
+
+# Temporary log files
+*.log
+infra/apply.log
+
+/docs/archive*

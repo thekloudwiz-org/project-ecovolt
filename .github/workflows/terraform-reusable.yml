@@ -330,12 +330,20 @@ jobs:
         run: |
           cd ${{ inputs.working_directory }}
           terraform apply -auto-approve ${{ inputs.environment }}.tfplan
-      
+
       - name: Terraform Output
         id: terraform-output
         run: |
           cd ${{ inputs.working_directory }}
           terraform output -json > outputs.json
+
+      - name: Update GitHub Secrets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/update-github-secrets.sh
+          ./scripts/update-github-secrets.sh ${{ inputs.environment }} ${{ inputs.working_directory }}
 
       - name: Comment on Invalid Plan
         if: steps.verify.outputs.valid == 'false' && github.event_name == 'pull_request'

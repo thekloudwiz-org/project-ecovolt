@@ -35,4 +35,6 @@ jobs:
       s3_bucket: ${{ secrets.ADMIN_PORTAL_S3_BUCKET_STAGING }}
       cloudfront_distribution_id: ${{ secrets.ADMIN_PORTAL_CLOUDFRONT_ID_STAGING }}
       api_url: ${{ secrets.API_URL_STAGING }}
+      user_pool_id: ${{ secrets.USER_POOL_ID_STAGING }}
+      user_pool_client_id: ${{ secrets.USER_POOL_CLIENT_ID_STAGING }}
 

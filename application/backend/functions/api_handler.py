@@ -6,13 +6,14 @@ Main Lambda function handler for API Gateway requests
 import json
 import os
 from typing import Dict, Any
-from api import auth, stations, swaps, users, admin, bikes, notifications
+from api import auth, stations, swaps, users, admin, bikes, notifications, config
 from utils.auth import verify_token
 
 # API Routes mapping
 ROUTES = {
     # Public routes
     'GET /health': lambda event, context: {'statusCode': 200, 'body': json.dumps({'status': 'healthy'})},
+    'GET /config': config.get_config,
     'GET /stations': stations.list_stations,
     'GET /stations/{id}': stations.get_station,
     'GET /stations/{id}/availability': stations.get_station_availability,
@@ -72,6 +73,7 @@ ROUTES = {
 # Public routes that don't require authentication
 PUBLIC_ROUTES = [
     'GET /health',
+    'GET /config',
     'GET /stations',
     'GET /stations/{id}',
     'GET /stations/{id}/availability',

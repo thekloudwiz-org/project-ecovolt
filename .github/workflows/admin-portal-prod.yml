@@ -35,4 +35,6 @@ jobs:
       s3_bucket: ${{ secrets.ADMIN_PORTAL_S3_BUCKET_PROD }}
       cloudfront_distribution_id: ${{ secrets.ADMIN_PORTAL_CLOUDFRONT_ID_PROD }}
       api_url: ${{ secrets.API_URL_PROD }}
+      user_pool_id: ${{ secrets.USER_POOL_ID_PROD }}
+      user_pool_client_id: ${{ secrets.USER_POOL_CLIENT_ID_PROD }}
 

@@ -26,8 +26,8 @@ import boto3
 import json
 import time
 import sys
-from datetime import datetime, timezone
-from typing import Dict, Optional, Tuple
+from datetime import datetime, timezone, timedelta
+from typing import Dict, Optional, Tuple, List
 import argparse
 from botocore.exceptions import ClientError
 
@@ -54,9 +54,13 @@ class EcoVoltSystemVerification:
         self.iot_client = boto3.client('iot-data', region_name=region)
         self.iot_control = boto3.client('iot', region_name=region)
         self.dynamodb = boto3.resource('dynamodb', region_name=region)
+        self.dynamodb_client = boto3.client('dynamodb', region_name=region)
         self.s3_client = boto3.client('s3', region_name=region)
         self.kinesis_client = boto3.client('kinesis', region_name=region)
         self.timestream_query = boto3.client('timestream-query', region_name=region)
+        self.cloudwatch = boto3.client('cloudwatch', region_name=region)
+        self.lambda_client = boto3.client('lambda', region_name=region)
+        self.logs_client = boto3.client('logs', region_name=region)
         
         # Test configuration
         self.test_device_id = f'TEST-{int(time.time())}'
@@ -355,6 +359,459 @@ class EcoVoltSystemVerification:
         self.results['s3_firehose'] = True  # Mark as informational success
         return True
     
+    def get_iot_metrics(self, time_range_minutes: int = 60) -> Dict:
+        """Get IoT Core metrics"""
+        try:
+            end_time = datetime.now(timezone.utc)
+            start_time = end_time - timedelta(minutes=time_range_minutes)
+            
+            # Messages published
+            messages_published = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/IoT',
+                MetricName='PublishIn.Success',
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            total_messages = sum(dp['Sum'] for dp in messages_published.get('Datapoints', []))
+            
+            # Get rules executed for each rule
+            rules_metrics = {}
+            for rule_suffix in ['bike_telemetry', 'station_energy', 'station_swap']:
+                rule_name = f'{self.project}_{self.environment}_{rule_suffix}'
+                
+                rules_executed = self.cloudwatch.get_metric_statistics(
+                    Namespace='AWS/IoT',
+                    MetricName='RulesExecuted',
+                    Dimensions=[{'Name': 'RuleName', 'Value': rule_name}],
+                    StartTime=start_time,
+                    EndTime=end_time,
+                    Period=3600,
+                    Statistics=['Sum']
+                )
+                
+                total_executed = sum(dp['Sum'] for dp in rules_executed.get('Datapoints', []))
+                rules_metrics[rule_suffix] = int(total_executed)
+            
+            return {
+                'messages_published': int(total_messages),
+                'rules': rules_metrics
+            }
+        except Exception as e:
+            self.print_warning(f"Could not fetch IoT metrics: {e}")
+            return {}
+    
+    def get_recent_lambda_logs(self, lines: int = 20) -> List[str]:
+        """Get recent Lambda function logs"""
+        try:
+            lambda_name = f'{self.project}-{self.environment}-stream-processor'
+            log_group = f'/aws/lambda/{lambda_name}'
+            
+            # Get log streams (most recent first)
+            streams_response = self.logs_client.describe_log_streams(
+                logGroupName=log_group,
+                orderBy='LastEventTime',
+                descending=True,
+                limit=5
+            )
+            
+            if not streams_response.get('logStreams'):
+                return []
+            
+            # Get events from most recent streams
+            all_events = []
+            for stream in streams_response['logStreams'][:3]:  # Check last 3 streams
+                try:
+                    events_response = self.logs_client.get_log_events(
+                        logGroupName=log_group,
+                        logStreamName=stream['logStreamName'],
+                        limit=lines,
+                        startFromHead=False
+                    )
+                    
+                    for event in events_response.get('events', []):
+                        timestamp = datetime.fromtimestamp(event['timestamp'] / 1000, tz=timezone.utc)
+                        all_events.append({
+                            'timestamp': timestamp,
+                            'message': event['message'].strip()
+                        })
+                except:
+                    continue
+            
+            # Sort by timestamp and return most recent
+            all_events.sort(key=lambda x: x['timestamp'], reverse=True)
+            return all_events[:lines]
+            
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                return []
+            self.print_warning(f"Could not fetch Lambda logs: {e}")
+            return []
+        except Exception as e:
+            self.print_warning(f"Could not fetch Lambda logs: {e}")
+            return []
+    
+    def verify_iot_rules(self) -> bool:
+        """Verify IoT Rules are configured and enabled"""
+        self.print_header("IoT Rules Verification")
+        
+        try:
+            # List all rules
+            response = self.iot_control.list_topic_rules()
+            rules = response.get('rules', [])
+            
+            # Filter for our environment
+            our_rules = [r for r in rules if self.environment in r['ruleName'] or self.project in r['ruleName']]
+            
+            if not our_rules:
+                self.print_error("No IoT Rules found for this environment")
+                return False
+            
+            self.print_success(f"Found {len(our_rules)} IoT Rule(s)")
+            
+            # Check each rule
+            all_enabled = True
+            for rule in our_rules:
+                rule_name = rule['ruleName']
+                disabled = rule.get('ruleDisabled', False)
+                
+                if disabled:
+                    self.print_error(f"  ✗ {rule_name} (DISABLED)")
+                    all_enabled = False
+                else:
+                    self.print_success(f"  ✓ {rule_name} (enabled)")
+                    
+                    # Get rule details
+                    try:
+                        rule_detail = self.iot_control.get_topic_rule(ruleName=rule_name)
+                        sql = rule_detail['rule']['sql']
+                        self.print_info(f"    SQL: {sql}")
+                    except:
+                        pass
+            
+            return all_enabled
+            
+        except Exception as e:
+            self.print_error(f"IoT Rules verification failed: {e}")
+            return False
+    
+    def get_lambda_metrics(self, time_range_minutes: int = 60) -> Dict:
+        """Get Lambda function metrics from CloudWatch"""
+        try:
+            lambda_name = f'{self.project}-{self.environment}-stream-processor'
+            
+            # Get metrics for specified time range
+            end_time = datetime.now(timezone.utc)
+            start_time = end_time - timedelta(minutes=time_range_minutes)
+            
+            # Invocations
+            invocations = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Lambda',
+                MetricName='Invocations',
+                Dimensions=[{'Name': 'FunctionName', 'Value': lambda_name}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # Errors
+            errors = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Lambda',
+                MetricName='Errors',
+                Dimensions=[{'Name': 'FunctionName', 'Value': lambda_name}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # Throttles
+            throttles = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Lambda',
+                MetricName='Throttles',
+                Dimensions=[{'Name': 'FunctionName', 'Value': lambda_name}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # Duration
+            duration = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Lambda',
+                MetricName='Duration',
+                Dimensions=[{'Name': 'FunctionName', 'Value': lambda_name}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Average']
+            )
+            
+            # Concurrent executions
+            concurrent = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Lambda',
+                MetricName='ConcurrentExecutions',
+                Dimensions=[{'Name': 'FunctionName', 'Value': lambda_name}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Maximum']
+            )
+            
+            total_invocations = sum(dp['Sum'] for dp in invocations.get('Datapoints', []))
+            total_errors = sum(dp['Sum'] for dp in errors.get('Datapoints', []))
+            total_throttles = sum(dp['Sum'] for dp in throttles.get('Datapoints', []))
+            avg_duration = sum(dp['Average'] for dp in duration.get('Datapoints', [])) / max(len(duration.get('Datapoints', [])), 1)
+            max_concurrent = max([dp['Maximum'] for dp in concurrent.get('Datapoints', [])], default=0)
+            
+            return {
+                'invocations': int(total_invocations),
+                'errors': int(total_errors),
+                'throttles': int(total_throttles),
+                'duration_ms': round(avg_duration, 2),
+                'concurrent_executions': int(max_concurrent),
+                'success_rate': round((total_invocations - total_errors) / max(total_invocations, 1) * 100, 2) if total_invocations > 0 else 0
+            }
+            
+        except Exception as e:
+            self.print_warning(f"Could not fetch Lambda metrics: {e}")
+            return {}
+    
+    def get_dynamodb_metrics(self, time_range_minutes: int = 60) -> Dict:
+        """Get DynamoDB table metrics"""
+        try:
+            # Get item count
+            response = self.dynamodb_client.describe_table(TableName=self.dynamodb_table)
+            item_count = response['Table']['ItemCount']
+            table_status = response['Table']['TableStatus']
+            
+            # Get CloudWatch metrics
+            end_time = datetime.now(timezone.utc)
+            start_time = end_time - timedelta(minutes=time_range_minutes)
+            
+            # User errors
+            user_errors = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/DynamoDB',
+                MetricName='UserErrors',
+                Dimensions=[{'Name': 'TableName', 'Value': self.dynamodb_table}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # System errors
+            system_errors = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/DynamoDB',
+                MetricName='SystemErrors',
+                Dimensions=[{'Name': 'TableName', 'Value': self.dynamodb_table}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            total_user_errors = sum(dp['Sum'] for dp in user_errors.get('Datapoints', []))
+            total_system_errors = sum(dp['Sum'] for dp in system_errors.get('Datapoints', []))
+            
+            return {
+                'item_count': item_count,
+                'table_status': table_status,
+                'user_errors': int(total_user_errors),
+                'system_errors': int(total_system_errors)
+            }
+        except Exception as e:
+            self.print_warning(f"Could not fetch DynamoDB metrics: {e}")
+            return {}
+    
+    def get_kinesis_metrics(self, time_range_minutes: int = 60) -> Dict:
+        """Get Kinesis stream metrics"""
+        try:
+            # Describe stream
+            response = self.kinesis_client.describe_stream_summary(StreamName=self.kinesis_stream)
+            summary = response['StreamDescriptionSummary']
+            
+            # Get CloudWatch metrics
+            end_time = datetime.now(timezone.utc)
+            start_time = end_time - timedelta(minutes=time_range_minutes)
+            
+            # Incoming records
+            incoming_records = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Kinesis',
+                MetricName='IncomingRecords',
+                Dimensions=[{'Name': 'StreamName', 'Value': self.kinesis_stream}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # Incoming bytes
+            incoming_bytes = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Kinesis',
+                MetricName='IncomingBytes',
+                Dimensions=[{'Name': 'StreamName', 'Value': self.kinesis_stream}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # Get records success
+            get_records = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Kinesis',
+                MetricName='GetRecords.Success',
+                Dimensions=[{'Name': 'StreamName', 'Value': self.kinesis_stream}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Sum']
+            )
+            
+            # Iterator age
+            iterator_age = self.cloudwatch.get_metric_statistics(
+                Namespace='AWS/Kinesis',
+                MetricName='GetRecords.IteratorAgeMilliseconds',
+                Dimensions=[{'Name': 'StreamName', 'Value': self.kinesis_stream}],
+                StartTime=start_time,
+                EndTime=end_time,
+                Period=3600,
+                Statistics=['Maximum']
+            )
+            
+            total_incoming = sum(dp['Sum'] for dp in incoming_records.get('Datapoints', []))
+            total_bytes = sum(dp['Sum'] for dp in incoming_bytes.get('Datapoints', []))
+            total_get_records = sum(dp['Sum'] for dp in get_records.get('Datapoints', []))
+            max_iterator_age = max([dp['Maximum'] for dp in iterator_age.get('Datapoints', [])], default=0)
+            
+            return {
+                'status': summary['StreamStatus'],
+                'shards': summary['OpenShardCount'],
+                'retention_hours': summary['RetentionPeriodHours'],
+                'incoming_records': int(total_incoming),
+                'incoming_bytes': int(total_bytes),
+                'incoming_kb': round(total_bytes / 1024, 2),
+                'get_records': int(total_get_records),
+                'iterator_age_ms': int(max_iterator_age),
+                'iterator_age_sec': round(max_iterator_age / 1000, 2),
+                'flow_rate_per_min': round(total_incoming / time_range_minutes, 2) if time_range_minutes > 0 else 0
+            }
+        except Exception as e:
+            self.print_warning(f"Could not fetch Kinesis metrics: {e}")
+            return {}
+    
+    def phase_metrics_summary(self, time_range_minutes: int = 60) -> bool:
+        """Display comprehensive metrics summary"""
+        self.print_header(f"METRICS SUMMARY - System Health (Last {time_range_minutes} minutes)")
+        
+        # IoT Core metrics
+        print(f"{Colors.BOLD}IoT Core Metrics:{Colors.NC}")
+        iot_metrics = self.get_iot_metrics(time_range_minutes)
+        if iot_metrics:
+            self.print_info(f"  Total Messages Published: {iot_metrics.get('messages_published', 0)}")
+            rules = iot_metrics.get('rules', {})
+            if rules:
+                print(f"\n  {Colors.BOLD}Rules Executed:{Colors.NC}")
+                for rule_name, count in rules.items():
+                    self.print_info(f"    {rule_name}: {count}")
+        
+        print()
+        
+        # Kinesis metrics
+        print(f"{Colors.BOLD}Kinesis Stream:{Colors.NC}")
+        kinesis_metrics = self.get_kinesis_metrics(time_range_minutes)
+        if kinesis_metrics:
+            self.print_info(f"  Stream: {self.kinesis_stream}")
+            self.print_info(f"  Status: {kinesis_metrics.get('status', 'UNKNOWN')}")
+            self.print_info(f"  Shards: {kinesis_metrics.get('shards', 0)}")
+            self.print_info(f"  Retention: {kinesis_metrics.get('retention_hours', 0)} hours")
+            self.print_info(f"  Incoming Records: {kinesis_metrics.get('incoming_records', 0)}")
+            self.print_info(f"  Incoming Data: {kinesis_metrics.get('incoming_kb', 0)} KB")
+            self.print_info(f"  Records Retrieved: {kinesis_metrics.get('get_records', 0)}")
+            self.print_info(f"  Iterator Age: {kinesis_metrics.get('iterator_age_sec', 0)}s")
+            
+            flow_rate = kinesis_metrics.get('flow_rate_per_min', 0)
+            if flow_rate > 0:
+                self.print_success(f"  Avg Flow Rate: {flow_rate} records/min")
+            else:
+                self.print_warning(f"  Avg Flow Rate: {flow_rate} records/min")
+        
+        print()
+        
+        # Lambda metrics
+        print(f"{Colors.BOLD}Lambda Stream Processor:{Colors.NC}")
+        lambda_metrics = self.get_lambda_metrics(time_range_minutes)
+        if lambda_metrics:
+            self.print_info(f"  Invocations: {lambda_metrics.get('invocations', 0)}")
+            
+            errors = lambda_metrics.get('errors', 0)
+            if errors == 0:
+                self.print_success(f"  Errors: {errors}")
+            else:
+                self.print_error(f"  Errors: {errors}")
+            
+            throttles = lambda_metrics.get('throttles', 0)
+            if throttles == 0:
+                self.print_success(f"  Throttles: {throttles}")
+            else:
+                self.print_error(f"  Throttles: {throttles}")
+            
+            self.print_info(f"  Avg Duration: {lambda_metrics.get('duration_ms', 0)}ms")
+            self.print_info(f"  Concurrent Executions: {lambda_metrics.get('concurrent_executions', 0)}")
+            
+            success_rate = lambda_metrics.get('success_rate', 0)
+            if success_rate >= 95:
+                self.print_success(f"  Success Rate: {success_rate}%")
+            elif success_rate >= 80:
+                self.print_warning(f"  Success Rate: {success_rate}%")
+            else:
+                self.print_error(f"  Success Rate: {success_rate}%")
+        
+        print()
+        
+        # DynamoDB metrics
+        print(f"{Colors.BOLD}DynamoDB:{Colors.NC}")
+        ddb_metrics = self.get_dynamodb_metrics(time_range_minutes)
+        if ddb_metrics:
+            self.print_info(f"  Table: {self.dynamodb_table}")
+            self.print_info(f"  Status: {ddb_metrics.get('table_status', 'UNKNOWN')}")
+            self.print_info(f"  Item Count: {ddb_metrics.get('item_count', 0)}")
+            
+            user_errors = ddb_metrics.get('user_errors', 0)
+            if user_errors == 0:
+                self.print_success(f"  User Errors: {user_errors}")
+            else:
+                self.print_error(f"  User Errors: {user_errors}")
+            
+            system_errors = ddb_metrics.get('system_errors', 0)
+            if system_errors == 0:
+                self.print_success(f"  System Errors: {system_errors}")
+            else:
+                self.print_error(f"  System Errors: {system_errors}")
+        
+        print()
+        
+        # Recent Lambda logs
+        print(f"{Colors.BOLD}Recent Lambda Logs (Last 10 lines):{Colors.NC}")
+        recent_logs = self.get_recent_lambda_logs(10)
+        if recent_logs:
+            for log in recent_logs:
+                timestamp_str = log['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+                print(f"  {Colors.CYAN}[{timestamp_str}]{Colors.NC} {log['message']}")
+        else:
+            self.print_warning("  No recent logs found")
+        
+        print()
+        
+        # IoT Rules status
+        print(f"{Colors.BOLD}IoT Rules Status:{Colors.NC}")
+        self.verify_iot_rules()
+        
+        return True
+    
     def verify_kinesis_stream(self, retry: bool = False) -> bool:
         """Verify data reached Kinesis stream"""
         if retry:
@@ -539,16 +996,42 @@ class EcoVoltSystemVerification:
         
         return True
 
+    def run_monitoring_only(self, time_range_minutes: int = 60):
+        """Run monitoring dashboard without verification tests"""
+        print(f"\n{Colors.MAGENTA}{'='*70}{Colors.NC}")
+        print(f"{Colors.MAGENTA}{Colors.BOLD}EcoVolt System Monitoring Dashboard{Colors.NC}")
+        print(f"{Colors.MAGENTA}{'='*70}{Colors.NC}")
+        print(f"\n{Colors.BLUE}Monitoring Time Range: Last {time_range_minutes} minutes{Colors.NC}")
+        print()
+        
+        # Display comprehensive metrics
+        self.phase_metrics_summary(time_range_minutes)
+        
+        print(f"\n{Colors.GREEN}{'='*70}{Colors.NC}")
+        print(f"{Colors.GREEN}{Colors.BOLD}Monitoring Complete{Colors.NC}")
+        print(f"{Colors.GREEN}{'='*70}{Colors.NC}")
+        print(f"\n{Colors.CYAN}Tip: Run this script periodically to monitor your IoT pipeline{Colors.NC}")
+        print(f"{Colors.CYAN}     Use --monitor flag for continuous monitoring mode{Colors.NC}")
+        print()
+
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description='EcoVolt Full System Verification',
+        description='EcoVolt Full System Verification and Monitoring',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Run full verification test
   python3 full_system_verification.py
-  python3 full_system_verification.py --region us-east-1
-  python3 full_system_verification.py --environment prod
+  
+  # Run monitoring dashboard only
+  python3 full_system_verification.py --monitor
+  
+  # Monitor with custom time range
+  python3 full_system_verification.py --monitor --time-range 120
+  
+  # Use different region/environment
+  python3 full_system_verification.py --region us-east-1 --environment prod
         """
     )
     
@@ -564,18 +1047,36 @@ Examples:
         help='Environment (default: dev)'
     )
     
+    parser.add_argument(
+        '--monitor',
+        action='store_true',
+        help='Run monitoring dashboard only (no verification tests)'
+    )
+    
+    parser.add_argument(
+        '--time-range',
+        type=int,
+        default=60,
+        help='Time range in minutes for monitoring metrics (default: 60)'
+    )
+    
     args = parser.parse_args()
     
-    # Run verification
+    # Create verifier instance
     verifier = EcoVoltSystemVerification(
         region=args.region,
         environment=args.environment
     )
     
     try:
-        verifier.run_full_verification()
+        if args.monitor:
+            # Run monitoring dashboard only
+            verifier.run_monitoring_only(args.time_range)
+        else:
+            # Run full verification
+            verifier.run_full_verification()
     except KeyboardInterrupt:
-        print(f"\n\n{Colors.YELLOW}Test interrupted by user{Colors.NC}")
+        print(f"\n\n{Colors.YELLOW}Interrupted by user{Colors.NC}")
         sys.exit(1)
     except Exception as e:
         print(f"\n{Colors.RED}Unexpected error: {e}{Colors.NC}")

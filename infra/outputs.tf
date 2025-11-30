@@ -1,5 +1,11 @@
 # Root Outputs
 
+# AWS Region
+output "aws_region" {
+  description = "AWS region where resources are deployed"
+  value       = var.aws_region
+}
+
 # Networking
 output "vpc_id" {
   description = "VPC ID"
@@ -29,15 +35,8 @@ output "db_endpoint" {
   value       = module.database.db_endpoint
 }
 
-output "redis_primary_endpoint" {
-  description = "Redis primary endpoint"
-  value       = module.database.redis_primary_endpoint
-}
-
-output "redis_reader_endpoint" {
-  description = "Redis reader endpoint"
-  value       = module.database.redis_reader_endpoint
-}
+# Redis endpoints removed - not needed for frontend deployments
+# Backend services access Redis via environment variables from SSM Parameter Store
 
 # Compute
 output "api_gateway_url" {
