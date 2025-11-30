@@ -149,10 +149,11 @@ infra/modules/**/NAMING_AND_SSM.md
 /PROJECT_MASTER_REPORT.md
 /CLEANUP_PLAN.md
 
-# Keep security documentation (important for public repo)
-# /SECURITY_AUDIT.md
-# /SECURITY.md
-# /GIT_HISTORY_VERIFICATION.md
+# Internal audit files (not for public repo)
+/SECURITY_AUDIT.md
+/GIT_HISTORY_VERIFICATION.md
+
+# Keep SECURITY.md (important for public repo - vulnerability reporting)
 
 # Application module working files
 application/**/IMPLEMENTATION_COMPLETE.md
