@@ -348,8 +348,10 @@ jobs:
 
       - name: Update GitHub Secrets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use PAT_TOKEN if available (has secrets write permission)
+          # Otherwise fall back to GITHUB_TOKEN (will fail but won't block deployment)
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           chmod +x scripts/update-github-secrets.sh
           ./scripts/update-github-secrets.sh ${{ inputs.environment }} ${{ inputs.working_directory }}

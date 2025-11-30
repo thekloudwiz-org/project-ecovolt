@@ -24,6 +24,28 @@ if [ -z "$GITHUB_REPOSITORY" ]; then
   exit 1
 fi
 
+# Check if gh CLI is available
+if ! command -v gh &> /dev/null; then
+  echo -e "${RED}Error: GitHub CLI (gh) is not installed${NC}"
+  echo -e "${YELLOW}Install with: brew install gh (macOS) or see https://cli.github.com${NC}"
+  exit 1
+fi
+
+# Test GitHub CLI authentication
+echo -e "${YELLOW}Testing GitHub CLI authentication...${NC}"
+if ! gh auth status &> /dev/null; then
+  echo -e "${YELLOW}⚠️  GitHub CLI not authenticated, attempting login...${NC}"
+  if ! echo "$GITHUB_TOKEN" | gh auth login --with-token 2>&1; then
+    echo -e "${RED}❌ Failed to authenticate with GitHub CLI${NC}"
+    echo -e "${YELLOW}Note: Default GITHUB_TOKEN may not have 'secrets' write permission${NC}"
+    echo -e "${YELLOW}To fix: Create a PAT with 'repo' scope and add as PAT_TOKEN secret${NC}"
+    exit 1
+  fi
+fi
+
+echo -e "${GREEN}✓ GitHub CLI authenticated${NC}"
+echo ""
+
 ENVIRONMENT=${1:-dev}
 TERRAFORM_DIR=${2:-infra}
 
@@ -76,22 +98,12 @@ update_secret() {
 
   # Use GitHub CLI (preferred method)
   if command -v gh &> /dev/null; then
-    # Use GitHub CLI (preferred method)
-    if [ -n "$env_name" ]; then
-      # Environment secret
-      echo "$secret_value" | gh secret set "$secret_name" \
-        --repo "$GITHUB_REPOSITORY" \
-        --env "$env_name" \
-        --body - &> /dev/null && \
-        echo -e "${GREEN}✓${NC} Updated $secret_name (environment: $env_name)" || \
-        echo -e "${RED}✗${NC} Failed to update $secret_name"
+    # Repository secret (no environment secrets in this version)
+    if echo "$secret_value" | gh secret set "$secret_name" --repo "$GITHUB_REPOSITORY" --body - 2>&1; then
+      echo -e "${GREEN}✓${NC} Updated $secret_name"
     else
-      # Repository secret
-      echo "$secret_value" | gh secret set "$secret_name" \
-        --repo "$GITHUB_REPOSITORY" \
-        --body - &> /dev/null && \
-        echo -e "${GREEN}✓${NC} Updated $secret_name" || \
-        echo -e "${RED}✗${NC} Failed to update $secret_name"
+      echo -e "${RED}✗${NC} Failed to update $secret_name"
+      echo -e "${YELLOW}   Error: Check if GITHUB_TOKEN has 'secrets' write permission${NC}"
     fi
   else
     echo -e "${YELLOW}⚠️  GitHub CLI not found, skipping $secret_name${NC}"
