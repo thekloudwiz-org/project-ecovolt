@@ -127,6 +127,8 @@ scripts/*_test.py
 # Archived Workflows
 .github/workflows/*.old
 .github/workflows/mobile-app-ci-cd.yml.old
+docs/archive/*
+
 
 # Testing artifacts and generated documentation
 scripts/testing/certs/
